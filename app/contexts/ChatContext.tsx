@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Message {
@@ -7,6 +7,7 @@ interface Message {
   text: string;
   timestamp: string;
   status: string;
+  isStarred?: boolean;
 }
 
 interface User {
@@ -17,10 +18,12 @@ interface User {
 interface ChatContextType {
   currentUser: User | null;
   messages: Message[];
+  starredMessages: Message[];
   isLoading: boolean;
   setCurrentUser: (user: User) => void;
   updateUser: (user: User) => void;
   addMessage: (text: string) => void;
+  toggleStarMessage: (messageId: string) => void;
   logout: () => void;
 }
 
@@ -28,7 +31,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
   USER: '@chat_app_user',
-  MESSAGES: '@chat_app_messages'
+  MESSAGES: '@chat_app_messages',
 };
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
@@ -36,19 +39,16 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user and messages from storage on mount
   useEffect(() => {
     loadStoredData();
   }, []);
 
-  // Save messages whenever they change
   useEffect(() => {
     if (!isLoading && messages.length > 0) {
       saveMessages();
     }
   }, [messages, isLoading]);
 
-  // Save user whenever it changes
   useEffect(() => {
     if (!isLoading && currentUser) {
       saveUser();
@@ -59,25 +59,23 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     try {
       const [storedUser, storedMessages] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.USER),
-        AsyncStorage.getItem(STORAGE_KEYS.MESSAGES)
+        AsyncStorage.getItem(STORAGE_KEYS.MESSAGES),
       ]);
-
       if (storedUser) {
         setCurrentUserState(JSON.parse(storedUser));
       }
-
       if (storedMessages) {
         setMessages(JSON.parse(storedMessages));
       } else {
-        // Set welcome message only if no messages exist
         setMessages([
           {
             id: '1',
             username: 'ChatBot',
             text: 'Welcome to the chat room! 👋',
             timestamp: new Date().toISOString(),
-            status: 'Always here to help'
-          }
+            status: 'Always here to help',
+            isStarred: false,
+          },
         ]);
       }
     } catch (error) {
@@ -115,17 +113,30 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
   const addMessage = (text: string) => {
     if (!currentUser) return;
-    
+
     const newMessage: Message = {
       id: Date.now().toString(),
       username: currentUser.username,
       text,
       timestamp: new Date().toISOString(),
-      status: currentUser.status
+      status: currentUser.status,
+      isStarred: false,
     };
-    
+
     setMessages(prev => [...prev, newMessage]);
   };
+
+  const toggleStarMessage = (messageId: string) => {
+    setMessages(prevMessages =>
+      prevMessages.map(msg =>
+        msg.id === messageId ? { ...msg, isStarred: !msg.isStarred } : msg
+      )
+    );
+  };
+
+  const starredMessages = useMemo(() => {
+    return messages.filter(msg => msg.isStarred).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [messages]);
 
   const logout = async () => {
     try {
@@ -137,7 +148,19 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <ChatContext.Provider value={{ currentUser, messages, isLoading, setCurrentUser, updateUser, addMessage, logout }}>
+    <ChatContext.Provider
+      value={{
+        currentUser,
+        messages,
+        isLoading,
+        setCurrentUser,
+        updateUser,
+        addMessage,
+        logout,
+        toggleStarMessage,
+        starredMessages,
+      }}
+    >
       {children}
     </ChatContext.Provider>
   );

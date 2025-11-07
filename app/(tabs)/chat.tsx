@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
+  Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,11 +17,10 @@ import { useChatContext } from '../contexts/ChatContext';
 
 export default function ChatScreen() {
   const [messageText, setMessageText] = useState('');
-  const { currentUser, messages, addMessage } = useChatContext();
+  const { currentUser, messages, addMessage, toggleStarMessage } = useChatContext();
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    // Auto scroll to bottom when new messages arrive
     if (messages.length > 0) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -46,52 +46,70 @@ export default function ChatScreen() {
     const userColor = getUserColor(item.username);
 
     return (
-      <View style={[styles.messageContainer, isOwnMessage && styles.ownMessageContainer]}>
-        {!isOwnMessage && (
-          <View style={[styles.avatar, { backgroundColor: userColor }]}>
-            <Text style={styles.avatarText}>{item.username[0].toUpperCase()}</Text>
+      <Pressable onLongPress={() => toggleStarMessage(item.id)}>
+        <View style={[styles.messageContainer, isOwnMessage && styles.ownMessageContainer]}>
+          {!isOwnMessage && (
+            <View style={[styles.avatar, { backgroundColor: userColor }]}>
+              <Text style={styles.avatarText}>{item.username[0].toUpperCase()}</Text>
+            </View>
+          )}
+
+          <View style={[styles.bubble, isOwnMessage && styles.ownBubble]}>
+            {isOwnMessage ? (
+              <LinearGradient
+                colors={['#8B5CF6', '#EC4899']}
+                style={styles.ownBubbleGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.username}>{item.username}</Text>
+                <View style={styles.statusRow}>
+                  <View style={[styles.statusDot, { backgroundColor: '#FCD34D' }]} />
+                  <Text style={styles.statusTextOwn}>{item.status}</Text>
+                </View>
+                <Text style={styles.messageTextOwn}>{item.text}</Text>
+                <View style={styles.footerRow}>
+                  {item.isStarred && (
+                    <Ionicons name="star" size={14} color="#F3E8FF" style={styles.starIcon} />
+                  )}
+                  <Text style={styles.timestampOwn}>
+                    {new Date(item.timestamp || Date.now()).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+                </View>
+              </LinearGradient>
+            ) : (
+              <View style={styles.otherBubbleContent}>
+                <Text style={[styles.username, { color: userColor }]}>{item.username}</Text>
+                <View style={styles.statusRow}>
+                  <View style={[styles.statusDot, { backgroundColor: userColor }]} />
+                  <Text style={styles.statusText}>{item.status}</Text>
+                </View>
+                <Text style={styles.messageText}>{item.text}</Text>
+                <View style={styles.footerRow}>
+                  {item.isStarred && (
+                    <Ionicons name="star" size={14} color="#F59E0B" style={styles.starIcon} />
+                  )}
+                  <Text style={styles.timestamp}>
+                    {new Date(item.timestamp || Date.now()).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
-        )}
-        
-        <View style={[styles.bubble, isOwnMessage && styles.ownBubble]}>
-          {isOwnMessage ? (
-            <LinearGradient
-              colors={['#8B5CF6', '#EC4899']}
-              style={styles.ownBubbleGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <Text style={styles.username}>{item.username}</Text>
-              <View style={styles.statusRow}>
-                <View style={[styles.statusDot, { backgroundColor: '#FCD34D' }]} />
-                <Text style={styles.statusTextOwn}>{item.status}</Text>
-              </View>
-              <Text style={styles.messageTextOwn}>{item.text}</Text>
-              <Text style={styles.timestampOwn}>
-                {new Date(item.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            </LinearGradient>
-          ) : (
-            <View style={styles.otherBubbleContent}>
-              <Text style={[styles.username, { color: userColor }]}>{item.username}</Text>
-              <View style={styles.statusRow}>
-                <View style={[styles.statusDot, { backgroundColor: userColor }]} />
-                <Text style={styles.statusText}>{item.status}</Text>
-              </View>
-              <Text style={styles.messageText}>{item.text}</Text>
-              <Text style={styles.timestamp}>
-                {new Date(item.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
+
+          {isOwnMessage && (
+            <View style={[styles.avatar, { backgroundColor: userColor }]}>
+              <Text style={styles.avatarText}>{item.username[0].toUpperCase()}</Text>
             </View>
           )}
         </View>
-
-        {isOwnMessage && (
-          <View style={[styles.avatar, { backgroundColor: userColor }]}>
-            <Text style={styles.avatarText}>{item.username[0].toUpperCase()}</Text>
-          </View>
-        )}
-      </View>
+      </Pressable>
     );
   };
 
@@ -256,17 +274,22 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     lineHeight: 22,
   },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+  },
+  starIcon: {
+    marginRight: 5,
+  },
   timestamp: {
     fontSize: 11,
     color: '#9CA3AF',
-    marginTop: 4,
-    textAlign: 'right',
   },
   timestampOwn: {
     fontSize: 11,
     color: '#F3E8FF',
-    marginTop: 4,
-    textAlign: 'right',
   },
   inputContainer: {
     flexDirection: 'row',
