@@ -1,13 +1,15 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect, useMemo } from 'react';
+import * as React from 'react'; 
+import { createContext, useState, useContext, ReactNode, useEffect, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-interface Message {
+export interface Message {
   id: string;
   username: string;
   text: string;
   timestamp: string;
   status: string;
   isStarred?: boolean;
+  isUpdate?: boolean;
 }
 
 interface User {
@@ -24,6 +26,8 @@ interface ChatContextType {
   updateUser: (user: User) => void;
   addMessage: (text: string) => void;
   toggleStarMessage: (messageId: string) => void;
+  updateMessage: (messageId: string, newText: string) => void;
+  deleteMessage: (messageId: string) => void;
   logout: () => void;
 }
 
@@ -138,6 +142,27 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     return messages.filter(msg => msg.isStarred).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [messages]);
 
+  const updateMessage =  (messageId: string, newText: string) => {
+    setMessages(prevMesssages =>
+      prevMesssages.map(msg =>
+        msg.id === messageId ?
+        {
+          ...msg,
+          text: newText,
+          isUpdate: true,
+          timestamp: new Date().toISOString()
+        }
+        : msg
+      )
+    );
+  };
+
+  const deleteMessage = (messageId: string) => {
+    setMessages(prevMessages =>
+      prevMessages.filter(msg => msg.id !== messageId)
+    );
+  };
+
   const logout = async () => {
     try {
       await AsyncStorage.removeItem(STORAGE_KEYS.USER);
@@ -159,6 +184,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         logout,
         toggleStarMessage,
         starredMessages,
+        updateMessage,
+        deleteMessage
       }}
     >
       {children}

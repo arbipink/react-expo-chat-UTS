@@ -10,14 +10,20 @@ import {
   Platform,
   SafeAreaView,
   Pressable,
+  Modal
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useChatContext } from '../contexts/ChatContext';
+import { useChatContext, Message } from '../contexts/ChatContext';
+import { useActionSheet } from '@expo/react-native-action-sheet';
 
 export default function ChatScreen() {
   const [messageText, setMessageText] = useState('');
-  const { currentUser, messages, addMessage, toggleStarMessage } = useChatContext();
+  const [isModalDelete, setModalDelete] = useState(false);
+  const { currentUser, messages, addMessage, toggleStarMessage, updateMessage, deleteMessage } = useChatContext();
+  const { showActionSheetWithOptions } = useActionSheet();
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -29,11 +35,21 @@ export default function ChatScreen() {
   }, [messages]);
 
   const handleSend = () => {
-    if (messageText.trim()) {
+    if(!messageText.trim()) return;
+
+    if(editingMessage) {
+      updateMessage(editingMessage.id, messageText.trim());
+      setEditingMessage(null);
+    } else {
       addMessage(messageText.trim());
-      setMessageText('');
     }
+    setMessageText('');
   };
+
+  const handleEdit = (msg: Message) => {
+  setEditingMessage(msg);         
+  setMessageText(msg.text);            
+ };
 
   const getUserColor = (username: string) => {
     const colors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899'];
@@ -46,7 +62,32 @@ export default function ChatScreen() {
     const userColor = getUserColor(item.username);
 
     return (
-      <Pressable onLongPress={() => toggleStarMessage(item.id)}>
+      <Pressable
+      onLongPress={() => {
+         const options = ["Edit", "Star", "Delete", "Cancel"];
+         const destructiveButtonIndex = 2;
+         const cancelButtonIndex = 3;
+
+         showActionSheetWithOptions(
+          {
+            options,
+            destructiveButtonIndex,
+            cancelButtonIndex,
+          },
+          (buttonIndex) => {
+            if (buttonIndex === 0) {
+              handleEdit(item);
+            } else if (buttonIndex === 1) {
+              toggleStarMessage(item.id);
+            } else if(buttonIndex === 2) {
+              setSelectedMessage(item);
+              setModalDelete(true);
+              // deleteMessage(item.id);
+            }
+          }
+         )
+      }}
+      >
         <View style={[styles.messageContainer, isOwnMessage && styles.ownMessageContainer]}>
           {!isOwnMessage && (
             <View style={[styles.avatar, { backgroundColor: userColor }]}>
@@ -69,6 +110,9 @@ export default function ChatScreen() {
                 </View>
                 <Text style={styles.messageTextOwn}>{item.text}</Text>
                 <View style={styles.footerRow}>
+                  {item.isUpdate && (
+                    <Text style={styles.updateMessage}>Edited</Text>
+                  )}
                   {item.isStarred && (
                     <Ionicons name="star" size={14} color="#F3E8FF" style={styles.starIcon} />
                   )}
@@ -110,6 +154,8 @@ export default function ChatScreen() {
           )}
         </View>
       </Pressable>
+
+
     );
   };
 
@@ -164,6 +210,60 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={isModalDelete}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalDelete(false)}
+      >
+        <View style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "rgba(0,0,0,0.5)"
+        }}>
+
+          <View style={{
+            width: "80%",
+            padding: 20,
+            borderRadius: 12,
+            backgroundColor: "#fff"
+          }}>
+            <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 10 }}>
+              Delete Message?
+            </Text>
+
+            <Text style={{ marginBottom: 20, color: "#555" }}>
+              Are you sure you want to delete this message?
+            </Text>
+
+            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+              <TouchableOpacity
+                onPress={() => setModalDelete(false)}
+                style={{ marginRight: 20 }}
+              >
+                <Text style={{ fontSize: 16, color: "#777" }}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  if (selectedMessage) {
+                    deleteMessage(selectedMessage.id);
+                  }
+                  setModalDelete(false);
+                }}
+              >
+                <Text style={{ fontSize: 16, color: "red", fontWeight: "600" }}>
+                  Delete
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+        </View>
+      </Modal>
+      
     </SafeAreaView>
   );
 }
@@ -279,6 +379,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     marginTop: 4,
+  },
+  updateMessage: {
+    fontSize: 11,
+    color: '#F3E8FF',
+    marginRight: 5,
   },
   starIcon: {
     marginRight: 5,
