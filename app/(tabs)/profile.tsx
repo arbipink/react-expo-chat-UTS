@@ -72,7 +72,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#8B5CF6', '#EC4899']}
+        colors={['#000066', '#3399FF']} // MODIFIED: Gradien Header Biru Gelap ke Biru Terang
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
@@ -93,7 +93,7 @@ export default function ProfileScreen() {
         <View style={styles.card}>
           <View style={styles.inputSection}>
             <View style={styles.labelRow}>
-              <Ionicons name="person-outline" size={20} color="#8B5CF6" />
+              <Ionicons name="person-outline" size={20} color="#3399FF" />
               <Text style={styles.label}>Username</Text>
             </View>
             <TextInput
@@ -142,7 +142,7 @@ export default function ProfileScreen() {
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <View style={styles.infoIcon}>
-              <Ionicons name="information-circle" size={24} color="#3B82F6" />
+              <Ionicons name="information-circle" size={24} color="#3399FF" />
             </View>
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoTitle}>Local Storage</Text>
@@ -171,7 +171,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#000000',
   },
   header: {
     paddingTop: 16,
@@ -213,16 +213,16 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#374151',
+    color: '#FFFFFF',
     marginTop: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#000033',
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
     marginBottom: 16,
@@ -241,17 +241,17 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: '#FFFFFF',
     marginLeft: 8,
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#000000',
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: '#000066',
     borderRadius: 12,
     padding: 14,
     fontSize: 16,
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   saveButton: {
     marginTop: 20,
@@ -272,12 +272,12 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   infoCard: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#000000',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#DBEAFE',
+    borderColor: '#000066',
   },
   infoRow: {
     flexDirection: 'row',
@@ -291,19 +291,19 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E40AF',
+    color: '#3399FF',
     marginBottom: 4,
   },
   infoDescription: {
     fontSize: 13,
-    color: '#3B82F6',
+    color: '#888888',
     lineHeight: 18,
   },
   logoutButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#000033',
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#FEE2E2',
+    borderColor: '#000066',
     overflow: 'hidden',
   },
   logoutButtonContent: {

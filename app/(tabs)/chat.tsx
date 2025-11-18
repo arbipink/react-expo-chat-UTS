@@ -98,7 +98,7 @@ export default function ChatScreen() {
           <View style={[styles.bubble, isOwnMessage && styles.ownBubble]}>
             {isOwnMessage ? (
               <LinearGradient
-                colors={['#8B5CF6', '#EC4899']}
+                colors={['#000066', '#3399FF']}
                 style={styles.ownBubbleGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -114,7 +114,7 @@ export default function ChatScreen() {
                     <Text style={styles.updateMessage}>Edited</Text>
                   )}
                   {item.isStarred && (
-                    <Ionicons name="star" size={14} color="#F3E8FF" style={styles.starIcon} />
+                    <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} />
                   )}
                   <Text style={styles.timestampOwn}>
                     {new Date(item.timestamp || Date.now()).toLocaleTimeString([], {
@@ -134,7 +134,7 @@ export default function ChatScreen() {
                 <Text style={styles.messageText}>{item.text}</Text>
                 <View style={styles.footerRow}>
                   {item.isStarred && (
-                    <Ionicons name="star" size={14} color="#F59E0B" style={styles.starIcon} />
+                    <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} />
                   )}
                   <Text style={styles.timestamp}>
                     {new Date(item.timestamp || Date.now()).toLocaleTimeString([], {
@@ -162,7 +162,7 @@ export default function ChatScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#8B5CF6', '#EC4899']}
+        colors={['#000066', '#3399FF']} // MODIFIED: Gradien Header Biru Gelap ke Biru Terang
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
@@ -202,7 +202,7 @@ export default function ChatScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={messageText.trim() ? ['#8B5CF6', '#EC4899'] : ['#D1D5DB', '#9CA3AF']}
+              colors={messageText.trim() ? ['#8B5CF6', '#EC4899'] : ['#444444', '#888888']}
               style={styles.sendButtonGradient}
             >
               <Ionicons name="send" size={20} color="#FFFFFF" />
@@ -228,13 +228,13 @@ export default function ChatScreen() {
             width: "80%",
             padding: 20,
             borderRadius: 12,
-            backgroundColor: "#fff"
+            backgroundColor: "#000033"
           }}>
-            <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 10 }}>
+            <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 10, color: '#FFFFFF' }}>
               Delete Message?
             </Text>
 
-            <Text style={{ marginBottom: 20, color: "#555" }}>
+            <Text style={{ marginBottom: 20, color: "#888888" }}>
               Are you sure you want to delete this message?
             </Text>
 
@@ -243,7 +243,7 @@ export default function ChatScreen() {
                 onPress={() => setModalDelete(false)}
                 style={{ marginRight: 20 }}
               >
-                <Text style={{ fontSize: 16, color: "#777" }}>Cancel</Text>
+                <Text style={{ fontSize: 16, color: "#CCCCCC" }}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -271,7 +271,7 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#000000',
   },
   header: {
     paddingTop: 16,
@@ -328,12 +328,12 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   otherBubbleContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#000033',
     padding: 12,
     borderBottomLeftRadius: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 2,
     elevation: 2,
   },
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#888888',
     fontStyle: 'italic',
   },
   statusTextOwn: {
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 16,
-    color: '#1F2937',
+    color: '#FFFFFF',
     lineHeight: 22,
   },
   messageTextOwn: {
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: '#444444',
   },
   timestampOwn: {
     fontSize: 11,
@@ -399,21 +399,21 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#000033',
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: '#000066',
     alignItems: 'flex-end',
   },
   input: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#000000',
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: '#000066',
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#1F2937',
+    color: '#FFFFFF',
     maxHeight: 100,
     marginRight: 8,
   },

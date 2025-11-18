@@ -6,12 +6,12 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#8B5CF6',
-        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarActiveTintColor: '#3399FF', // MODIFIED: Bright Blue Accent
+        tabBarInactiveTintColor: '#888888', // MODIFIED: Muted Gray Color
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: '#000000', // MODIFIED: Deep Black Background
           borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
+          borderTopColor: '#000066', // MODIFIED: Dark Blue Border
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,

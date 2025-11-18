@@ -49,7 +49,7 @@ export default function StarredMessagesScreen() {
                 <Text style={styles.messageTextOwn}>{item.text}</Text>
                 <View style={styles.footerRow}>
                   {item.isStarred && (
-                    <Ionicons name="star" size={14} color="#F3E8FF" style={styles.starIcon} />
+                    <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} /> // MODIFIED: Bintang emas
                   )}
                   <Text style={styles.timestampOwn}>
                     {new Date(item.timestamp || Date.now()).toLocaleTimeString([], {
@@ -69,7 +69,7 @@ export default function StarredMessagesScreen() {
                 <Text style={styles.messageText}>{item.text}</Text>
                 <View style={styles.footerRow}>
                   {item.isStarred && (
-                    <Ionicons name="star" size={14} color="#F59E0B" style={styles.starIcon} />
+                    <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} /> // MODIFIED: Bintang emas
                   )}
                   <Text style={styles.timestamp}>
                     {new Date(item.timestamp || Date.now()).toLocaleTimeString([], {
@@ -94,7 +94,7 @@ export default function StarredMessagesScreen() {
 
   const ListEmptyComponent = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="star-outline" size={64} color="#CBD5E1" />
+      <Ionicons name="star-outline" size={64} color="#000066" />
       <Text style={styles.emptyTitle}>No Starred Messages</Text>
       <Text style={styles.emptySubtitle}>
         Long-press any message in the chat to star it.
@@ -105,7 +105,7 @@ export default function StarredMessagesScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#F59E0B', '#FCD34D']} 
+        colors={['#3399FF', '#0000FF']} // MODIFIED: Biru Terang ke Biru Tua
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
@@ -128,7 +128,7 @@ export default function StarredMessagesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#000000',
   },
   header: {
     paddingTop: 16,
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#FFFBEB',
+    color: '#FFFFFF',
     marginTop: 4,
   },
   messagesList: {
@@ -183,12 +183,12 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   otherBubbleContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#000033',
     padding: 12,
     borderBottomLeftRadius: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 2,
     elevation: 2,
   },
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#888888',
     fontStyle: 'italic',
   },
   statusTextOwn: {
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 16,
-    color: '#1F2937',
+    color: '#FFFFFF',
     lineHeight: 22,
   },
   messageTextOwn: {
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: '#444444',
   },
   timestampOwn: {
     fontSize: 11,
@@ -256,12 +256,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#374151',
+    color: '#FFFFFF',
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#888888',
     marginTop: 8,
     textAlign: 'center',
   },

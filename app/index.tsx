@@ -44,7 +44,7 @@ export default function LoginScreen() {
   if (isLoading) {
     return (
       <LinearGradient
-        colors={['#8B5CF6', '#EC4899', '#3B82F6']}
+        colors={['#000000', '#000066', '#0000FF']}
         style={styles.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -59,7 +59,7 @@ export default function LoginScreen() {
 
   return (
     <LinearGradient
-      colors={['#8B5CF6', '#EC4899', '#3B82F6']}
+      colors={['#000000', '#000066', '#0000FF']}
       style={styles.gradient}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -101,19 +101,29 @@ export default function LoginScreen() {
               />
 
               <TouchableOpacity
-                style={[styles.button, !username.trim() && styles.buttonDisabled]}
+                style={[
+                  styles.button,
+                  !username.trim() && styles.buttonDisabled,
+                  { borderWidth: 2, borderColor: username.trim() ? '#000066' : '#444444' } // MODIFIED: Border for button
+                ]}
                 onPress={handleLogin}
                 disabled={!username.trim()}
                 activeOpacity={0.8}
               >
-                <LinearGradient
-                  colors={username.trim() ? ['#8B5CF6', '#EC4899'] : ['#D1D5DB', '#9CA3AF']}
-                  style={styles.buttonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+                {/* LinearGradient dihilangkan, diganti dengan View solid */}
+                <View
+                  style={[
+                    styles.buttonSolid,
+                    { backgroundColor: username.trim() ? '#000000' : '#222222' } // MODIFIED: Solid background color
+                  ]}
                 >
-                  <Text style={styles.buttonText}>Enter Chat Room</Text>
-                </LinearGradient>
+                  <Text style={[
+                    styles.buttonText,
+                    { color: username.trim() ? '#FFFFFF' : '#AAAAAA' } // MODIFIED: Text color
+                  ]}>
+                    Enter Chat Room
+                  </Text>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -165,55 +175,54 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 18,
-    color: '#F3E8FF',
+    color: '#CCCCCC',
     marginBottom: 40,
     textAlign: 'center',
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#000033',
     borderRadius: 24,
     padding: 24,
     width: '100%',
     maxWidth: 400,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.5,
     shadowRadius: 16,
     elevation: 8,
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   labelMargin: {
     marginTop: 16,
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#000000',
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: '#000066',
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   button: {
     marginTop: 24,
     borderRadius: 12,
     overflow: 'hidden',
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonGradient: {
+  buttonSolid: { // MODIFIED: New style for solid button background
     paddingVertical: 16,
     paddingHorizontal: 24,
     alignItems: 'center',
   },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
   buttonText: {
-    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
   },
