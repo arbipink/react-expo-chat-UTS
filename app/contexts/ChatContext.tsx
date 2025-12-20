@@ -12,9 +12,11 @@ export interface Message {
   isUpdate?: boolean;
 }
 
-interface User {
+export interface User {
   username: string;
   status: string;
+  email: string;
+  password: string;
 }
 
 interface ChatContextType {
@@ -150,7 +152,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           ...msg,
           text: newText,
           isUpdate: true,
-          timestamp: new Date().toISOString()
         }
         : msg
       )

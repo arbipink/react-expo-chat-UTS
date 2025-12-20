@@ -97,11 +97,8 @@ export default function ChatScreen() {
 
           <View style={[styles.bubble, isOwnMessage && styles.ownBubble]}>
             {isOwnMessage ? (
-              <LinearGradient
-                colors={['#000066', '#3399FF']}
-                style={styles.ownBubbleGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+              <View
+                style={styles.ownBubbleColor}
               >
                 <Text style={styles.username}>{item.username}</Text>
                 <View style={styles.statusRow}>
@@ -123,7 +120,7 @@ export default function ChatScreen() {
                     })}
                   </Text>
                 </View>
-              </LinearGradient>
+              </View>
             ) : (
               <View style={styles.otherBubbleContent}>
                 <Text style={[styles.username, { color: userColor }]}>{item.username}</Text>
@@ -161,15 +158,10 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#000066', '#3399FF']} // MODIFIED: Gradien Header Biru Gelap ke Biru Terang
-        style={styles.header}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-      >
+      <View style={styles.header}>
         <Text style={styles.headerTitle}>Chat Room</Text>
         <Text style={styles.headerSubtitle}>{messages.length} messages</Text>
-      </LinearGradient>
+      </View>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -202,7 +194,7 @@ export default function ChatScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={messageText.trim() ? ['#8B5CF6', '#EC4899'] : ['#444444', '#888888']}
+              colors={messageText.trim() ? ['#5B7CFA', '#5B7CFA'] : ['#444444', '#888888']}
               style={styles.sendButtonGradient}
             >
               <Ionicons name="send" size={20} color="#FFFFFF" />
@@ -271,9 +263,11 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    // backgroundColor: '#000000',
+    backgroundColor: '#F8FAFC',
   },
   header: {
+    backgroundColor: '#000066',
     paddingTop: 16,
     paddingBottom: 16,
     paddingHorizontal: 24,
@@ -324,14 +318,15 @@ const styles = StyleSheet.create({
   ownBubble: {
     borderBottomRightRadius: 4,
   },
-  ownBubbleGradient: {
-    padding: 12,
+  ownBubbleColor: {
+    backgroundColor: '#5B7CFA',
+    padding: 18,
   },
   otherBubbleContent: {
-    backgroundColor: '#000033',
-    padding: 12,
+    backgroundColor: '#000066',
+    padding: 18,
     borderBottomLeftRadius: 4,
-    shadowColor: '#000',
+    shadowColor: '#484646ff',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.3,
     shadowRadius: 2,
@@ -382,7 +377,7 @@ const styles = StyleSheet.create({
   },
   updateMessage: {
     fontSize: 11,
-    color: '#F3E8FF',
+    color: '#000066',
     marginRight: 5,
   },
   starIcon: {
@@ -399,21 +394,21 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     padding: 16,
-    backgroundColor: '#000033',
+    backgroundColor: '#000066',
     borderTopWidth: 1,
     borderTopColor: '#000066',
     alignItems: 'flex-end',
   },
   input: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#F8FAFC',
     borderWidth: 2,
     borderColor: '#000066',
-    borderRadius: 24,
+    borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#FFFFFF',
+    color: '#000066',
     maxHeight: 100,
     marginRight: 8,
   },

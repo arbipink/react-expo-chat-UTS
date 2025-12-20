@@ -16,81 +16,78 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import { useChatContext, User } from './contexts/ChatContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 const { height } = Dimensions.get('window');
 
-export default function LoginScreen() {
+export default function SignUpScreen() {
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [status, setStatus] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { setCurrentUser, currentUser, isLoading } = useChatContext();
+  const { isLoading } = useChatContext();
   const router = useRouter();
 
-  // Auto-login if user exists
-  useEffect(() => {
-    if (!isLoading && currentUser) {
-      router.replace('/(tabs)/chat');
+
+
+  const handleSignUp = async () => {
+    if (!username || !email || !password) {
+      alert('Please fill in all fields');
     }
-  }, [currentUser, isLoading]);
 
-  const handleLogin = async () => {
-  if (!username || !password) {
-    alert('Username dan password wajib diisi');
-    return;
-  }
+    if (password.length < 5) {
+        alert('Password must be at least 5 characters');
+        return;
+    }
 
-  try {
+    try {
+   
     const storedUsers = await AsyncStorage.getItem('users');
     const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
 
-    const user = users.find(
-      u => u.username === username && u.password === password
+    const userExist = users.find(
+      u => u.username === username || u.email === email
     );
 
-    if (!user) {
-      alert('Username or password is incorrect');
+    if (userExist) {
+      alert('Username or email is already taken, please choose another one.');
       return;
     }
 
-    setCurrentUser({
-      username: user.username,
-      email: user.email,
-      password: user.password,
-      status: user.status,
-    });
+    // User baru
+    const newUser = {
+      username: username.trim(),
+      email: email.trim(),
+      password,
+      status: 'Available',
+    };
 
-    router.replace('/(tabs)/chat');
+    // Simpan
+    users.push(newUser);
+    await AsyncStorage.setItem('users', JSON.stringify(users));
+
+    alert('Registration successful! You can now log in.');
+    router.replace('/');
+
   } catch (error) {
     console.log(error);
-    alert('Login failed');
+    alert('Sign up failed, please try again.');
   }
-};
 
-  // const handleLogin = () => {
-  //   if (username.trim()) {
-  //     setCurrentUser({
-  //       username: username.trim(),
-  //       status: status.trim() || 'Available'
-  //     });
-  //     router.replace('/(tabs)/chat');
-  //   }
-  // };
+  }
 
-  // Show loading while checking for stored user
   if (isLoading) {
     return (
       <SafeAreaView
-              style={{ flex: 1, backgroundColor: '#F8FAFC' }}
-            >
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#000066" />
-                <Text style={styles.loadingText}>Loading...</Text>
-              </View>
-        </SafeAreaView>
+        style={{ flex: 1, backgroundColor: '#F8FAFC' }}
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#000066" />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -108,7 +105,7 @@ export default function LoginScreen() {
           <View style={styles.content}>
             <Text style={styles.emoji}>💬</Text>
             <Text style={styles.title}>Chat App</Text>
-            <Text style={styles.subtitle}>Connect and chat with friends!</Text>
+            <Text style={styles.subtitle}>Sign up to have a chit-chat!</Text>
 
             <View style={styles.card}>
               <Text style={styles.label}>Username</Text>
@@ -124,6 +121,19 @@ export default function LoginScreen() {
                 returnKeyType="next"
               />
 
+              <Text style={[styles.label, styles.labelMargin]}>Email</Text>
+              <TextInput
+                style={[styles.input, isFocused && styles.inputFocused]}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                placeholder="Enter your email"
+                placeholderTextColor="#9CA3AF"
+                value={email}
+                onChangeText={setEmail}
+                returnKeyType="done"
+                onSubmitEditing={handleSignUp}
+              />
+              
               <Text style={[styles.label, styles.labelMargin]}>Password</Text>
               <View style={{ position: 'relative' }}>
                 <TextInput
@@ -149,27 +159,15 @@ export default function LoginScreen() {
                     />
                 </Pressable>
               </View>
-
-              <Text style={[styles.label, styles.labelMargin]}>Status</Text>
-              <TextInput
-                style={[styles.input, isFocused && styles.inputFocused]}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                placeholder="What's your status? (e.g., Available, Busy)"
-                placeholderTextColor="#9CA3AF"
-                value={status}
-                onChangeText={setStatus}
-                returnKeyType="done"
-                onSubmitEditing={handleLogin}
-              />
+              
 
               <TouchableOpacity
                 style={[
                   styles.button,
                   !username.trim() && styles.buttonDisabled,
-                  { borderWidth: 2, borderColor: username.trim() ? '#000066' : '#444444' } // MODIFIED: Border for button
+                  { borderWidth: 2, borderColor: username.trim() ? '#000066' : '#444444' } 
                 ]}
-                onPress={handleLogin}
+                onPress={handleSignUp}
                 disabled={!username.trim()}
                 activeOpacity={0.8}
               >
@@ -177,21 +175,21 @@ export default function LoginScreen() {
                 <View
                   style={[
                     styles.buttonSolid,
-                    { backgroundColor: username.trim() ? '#0f307bff' : '#222222' } // MODIFIED: Solid background color
+                    { backgroundColor: username.trim() ? '#0f307bff' : '#222222' } 
                   ]}
                 >
                   <Text style={[
                     styles.buttonText,
-                    { color: username.trim() ? '#E5E7EB' : '#AAAAAA' } // MODIFIED: Text color
+                    { color: username.trim() ? '#E5E7EB' : '#AAAAAA' } 
                   ]}>
-                    Enter Chat Room
+                    Sign Up
                   </Text>
                 </View>
               </TouchableOpacity>
             </View>
-            <View style={styles.signUpMargin}>
-              <Text style={styles.signUpText_1}>Don't have an account yet?
-                <Link href={'/signup'} style={styles.signUpText_2}> Sign Up Now!</Link>
+            <View style={styles.signInMargin}>
+              <Text style={styles.signInText_1}>Already have an account?
+                <Link href={'/'} style={styles.signInText_2}> Sign In Now!</Link>
               </Text>
               
             </View>
@@ -304,16 +302,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  signUpMargin: {
+  signInMargin: {
     marginTop: 20,
   },
-  signUpText_1: {
+  signInText_1: {
     fontSize: 14,
     color: '#333739',
     marginTop: 20,
     textAlign: 'center',
   },
-  signUpText_2: {
+  signInText_2: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#0f307bff',

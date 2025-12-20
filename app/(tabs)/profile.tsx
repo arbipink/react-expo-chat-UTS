@@ -35,8 +35,9 @@ export default function ProfileScreen() {
     }
 
     updateUser({
+      ...currentUser!,
       username: username.trim(),
-      status: status.trim() || 'Available'
+      status: status.trim() || 'Available',
     });
 
     Alert.alert('Success', 'Profile updated successfully!');
@@ -76,11 +77,12 @@ export default function ProfileScreen() {
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
+        pointerEvents='none'
       >
         <Text style={styles.headerTitle}>Profile</Text>
       </LinearGradient>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.avatarSection}>
           <View style={[styles.largeAvatar, { backgroundColor: userColor }]}>
             <Text style={styles.largeAvatarText}>
