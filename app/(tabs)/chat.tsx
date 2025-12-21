@@ -263,12 +263,11 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: '#000000',
     backgroundColor: '#F8FAFC',
   },
   header: {
     backgroundColor: '#000066',
-    paddingTop: 16,
+    paddingTop: 28,
     paddingBottom: 16,
     paddingHorizontal: 24,
   },

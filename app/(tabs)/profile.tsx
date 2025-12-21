@@ -5,43 +5,115 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
+  Dimensions,
   Alert,
+  SafeAreaView,
+  Pressable
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useChatContext } from '../contexts/ChatContext';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const { height } = Dimensions.get('window');
 
 export default function ProfileScreen() {
   const { currentUser, updateUser, logout } = useChatContext();
-  const [username, setUsername] = useState(currentUser?.username || '');
-  const [status, setStatus] = useState(currentUser?.status || '');
-  const [hasChanges, setHasChanges] = useState(false);
   const router = useRouter();
 
+  // Profile State
+  const [username, setUsername] = useState(currentUser?.username || '');
+  const [status, setStatus] = useState(currentUser?.status || '');
+  
+  // Password State
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPasswordText, setShowPasswordText] = useState(false); // Toggles text visibility for all password fields
+
+  // UI State
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isFocused, setIsFocused] = useState<string | null>(null);
+
   useEffect(() => {
-    const changed = 
+    // Check if basic info changed
+    const basicInfoChanged = 
       username !== currentUser?.username || 
       status !== currentUser?.status;
-    setHasChanges(changed);
-  }, [username, status, currentUser]);
+    
+    // Check if password fields have content
+    const passwordAttempted = showChangePassword && (currentPassword !== '' || newPassword !== '');
 
-  const handleSave = () => {
+    setHasChanges(basicInfoChanged || passwordAttempted);
+  }, [username, status, currentUser, currentPassword, newPassword, showChangePassword]);
+
+  const handleSave = async () => {
     if (!username.trim()) {
       Alert.alert('Error', 'Username cannot be empty');
       return;
     }
 
-    updateUser({
-      ...currentUser!,
-      username: username.trim(),
-      status: status.trim() || 'Available',
-    });
+    let finalPassword = currentUser?.password;
 
-    Alert.alert('Success', 'Profile updated successfully!');
-    setHasChanges(false);
+    if (showChangePassword) {
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        Alert.alert('Error', 'Please fill in all password fields');
+        return;
+      }
+
+      if (currentPassword !== currentUser?.password) {
+        Alert.alert('Error', 'Current password is incorrect');
+        return;
+      }
+
+      if (newPassword.length < 5) {
+        Alert.alert('Error', 'New password must be at least 5 characters');
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        Alert.alert('Error', 'New passwords do not match');
+        return;
+      }
+
+      finalPassword = newPassword;
+    }
+
+    try {
+      const storedUsers = await AsyncStorage.getItem('users');
+      let users = storedUsers ? JSON.parse(storedUsers) : [];
+
+      const updatedUser = {
+        ...currentUser!,
+        username: username.trim(),
+        status: status.trim() || 'Available',
+        password: finalPassword!,
+      };
+
+      const userIndex = users.findIndex((u: any) => u.email === currentUser?.email);
+      
+      if (userIndex !== -1) {
+        users[userIndex] = updatedUser;
+        await AsyncStorage.setItem('users', JSON.stringify(users));
+      }
+
+      updateUser(updatedUser);
+
+      Alert.alert('Success', 'Profile updated successfully!');
+      setHasChanges(false);
+      setShowChangePassword(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Failed to save profile');
+    }
   };
 
   const handleLogout = () => {
@@ -68,104 +140,181 @@ export default function ProfileScreen() {
     return colors[hash % colors.length];
   };
 
-  const userColor = getUserColor(username || 'User');
+  const userColor = getUserColor(currentUser?.username || 'User');
 
   return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#000066', '#3399FF']} // MODIFIED: Gradien Header Biru Gelap ke Biru Terang
-        style={styles.header}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        pointerEvents='none'
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
       >
-        <Text style={styles.headerTitle}>Profile</Text>
-      </LinearGradient>
-
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled">
-        <View style={styles.avatarSection}>
-          <View style={[styles.largeAvatar, { backgroundColor: userColor }]}>
-            <Text style={styles.largeAvatarText}>
-              {username ? username[0].toUpperCase() : '?'}
-            </Text>
-          </View>
-          <Text style={styles.welcomeText}>Welcome back!</Text>
-        </View>
-
-        <View style={styles.card}>
-          <View style={styles.inputSection}>
-            <View style={styles.labelRow}>
-              <Ionicons name="person-outline" size={20} color="#3399FF" />
-              <Text style={styles.label}>Username</Text>
-            </View>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your username"
-              placeholderTextColor="#9CA3AF"
-              value={username}
-              onChangeText={setUsername}
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={[styles.inputSection, styles.inputSectionMargin]}>
-            <View style={styles.labelRow}>
-              <Ionicons name="chatbubble-outline" size={20} color="#EC4899" />
-              <Text style={styles.label}>Status</Text>
-            </View>
-            <TextInput
-              style={styles.input}
-              placeholder="What's your status?"
-              placeholderTextColor="#9CA3AF"
-              value={status}
-              onChangeText={setStatus}
-            />
-          </View>
-
-          {hasChanges && (
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleSave}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={['#10B981', '#059669']}
-                style={styles.saveButtonGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-                <Text style={styles.saveButtonText}>Save Changes</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}>
-              <Ionicons name="information-circle" size={24} color="#3399FF" />
-            </View>
-            <View style={styles.infoTextContainer}>
-              <Text style={styles.infoTitle}>Local Storage</Text>
-              <Text style={styles.infoDescription}>
-                All your messages and profile data are stored locally in memory. They will be cleared when you logout.
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-          activeOpacity={0.8}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.logoutButtonContent}>
-            <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-            <Text style={styles.logoutButtonText}>Logout</Text>
+          <View style={styles.content}>
+            <View style={[styles.largeAvatar, { backgroundColor: userColor }]}>
+                <Text style={styles.largeAvatarText}>
+                {currentUser?.username ? currentUser.username[0].toUpperCase() : '?'}
+                </Text>
+            </View>
+
+            <Text style={styles.title}>Profile</Text>
+            <Text style={styles.subtitle}>Update your personal details</Text>
+
+            <View style={styles.card}>
+              <Text style={styles.label}>Username</Text>
+              <TextInput
+                style={[styles.input, isFocused === 'username' && styles.inputFocused]}
+                onFocus={() => setIsFocused('username')}
+                onBlur={() => setIsFocused(null)}
+                placeholder="Enter your username"
+                placeholderTextColor="#9CA3AF"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+              />
+
+              <Text style={[styles.label, styles.labelMargin]}>Status</Text>
+              <TextInput
+                style={[styles.input, isFocused === 'status' && styles.inputFocused]}
+                onFocus={() => setIsFocused('status')}
+                onBlur={() => setIsFocused(null)}
+                placeholder="What's your status?"
+                placeholderTextColor="#9CA3AF"
+                value={status}
+                onChangeText={setStatus}
+              />
+
+              <TouchableOpacity 
+                style={styles.togglePasswordRow}
+                onPress={() => setShowChangePassword(!showChangePassword)}
+              >
+                 <Text style={[styles.label, { marginBottom: 0, color: '#F8FAFC' }]}>
+                    Security (Change Password)
+                 </Text>
+                 <Ionicons 
+                    name={showChangePassword ? "chevron-up" : "chevron-down"} 
+                    size={20} 
+                    color="#F8FAFC" 
+                 />
+              </TouchableOpacity>
+
+              {showChangePassword && (
+                <View style={styles.passwordSection}>
+                    
+                    <Text style={styles.subLabel}>Current Password</Text>
+                    <View style={styles.passwordContainer}>
+                        <TextInput
+                            style={[styles.input, isFocused === 'currPass' && styles.inputFocused]}
+                            onFocus={() => setIsFocused('currPass')}
+                            onBlur={() => setIsFocused(null)}
+                            placeholder="Current password"
+                            placeholderTextColor="#9CA3AF"
+                            value={currentPassword}
+                            onChangeText={setCurrentPassword}
+                            secureTextEntry={!showPasswordText}
+                        />
+                    </View>
+
+                    <Text style={[styles.subLabel, styles.labelMargin]}>New Password</Text>
+                    <View style={styles.passwordContainer}>
+                        <TextInput
+                            style={[styles.input, isFocused === 'newPass' && styles.inputFocused]}
+                            onFocus={() => setIsFocused('newPass')}
+                            onBlur={() => setIsFocused(null)}
+                            placeholder="New password (min 5 chars)"
+                            placeholderTextColor="#9CA3AF"
+                            value={newPassword}
+                            onChangeText={setNewPassword}
+                            secureTextEntry={!showPasswordText}
+                        />
+                    </View>
+
+                    <Text style={[styles.subLabel, styles.labelMargin]}>Confirm Password</Text>
+                    <View style={styles.passwordContainer}>
+                        <TextInput
+                            style={[styles.input, isFocused === 'confPass' && styles.inputFocused]}
+                            onFocus={() => setIsFocused('confPass')}
+                            onBlur={() => setIsFocused(null)}
+                            placeholder="Confirm new password"
+                            placeholderTextColor="#9CA3AF"
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            secureTextEntry={!showPasswordText}
+                        />
+                        <Pressable
+                            style={styles.eyeIcon}
+                            onPress={() => setShowPasswordText(!showPasswordText)}
+                        >
+                            <Ionicons
+                            name={showPasswordText ? 'eye-off-outline' : 'eye-outline'}
+                            size={22}
+                            color="#64748B"
+                            />
+                        </Pressable>
+                    </View>
+                </View>
+              )}
+
+              {hasChanges && (
+                <TouchableOpacity
+                    style={[
+                    styles.button,
+                    { borderWidth: 2, borderColor: '#000066' } 
+                    ]}
+                    onPress={handleSave}
+                    activeOpacity={0.8}
+                >
+                    <View
+                    style={[
+                        styles.buttonSolid,
+                        { backgroundColor: '#0f307bff' } 
+                    ]}
+                    >
+                    <Text style={[styles.buttonText, { color: '#E5E7EB' }]}>
+                        Save Changes
+                    </Text>
+                    </View>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={[
+                    styles.button, 
+                    { marginTop: hasChanges ? 16 : 24, borderWidth: 2, borderColor: '#EF4444' }
+                ]}
+                onPress={handleLogout}
+                activeOpacity={0.8}
+              >
+                <View
+                  style={[
+                    styles.buttonSolid,
+                    { backgroundColor: '#FEE2E2' }
+                  ]}
+                >
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Ionicons name="log-out-outline" size={20} color="#EF4444" style={{marginRight: 8}} />
+                        <Text style={[styles.buttonText, { color: '#EF4444' }]}>
+                            Logout
+                        </Text>
+                    </View>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Info Section */}
+            <View style={styles.infoMargin}>
+                <Ionicons name="information-circle-outline" size={16} color="#64748B" style={{marginBottom: 4}} />
+                <Text style={styles.infoText}>
+                    Updates to your profile are saved locally.{"\n"}
+                    Changing your password will affect your next login.
+                </Text>
+            </View>
+
           </View>
-        </TouchableOpacity>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -173,27 +322,15 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
   },
-  header: {
-    paddingTop: 16,
-    paddingBottom: 16,
-    paddingHorizontal: 24,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 24,
+    minHeight: height,
   },
   content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 24,
-  },
-  avatarSection: {
     alignItems: 'center',
-    marginBottom: 32,
   },
   largeAvatar: {
     width: 100,
@@ -201,6 +338,7 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -212,113 +350,103 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  welcomeText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginTop: 16,
+  title: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#333739',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 18,
+    color: '#333739',
+    marginBottom: 40,
+    textAlign: 'center',
   },
   card: {
-    backgroundColor: '#000033',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-    marginBottom: 16,
-  },
-  inputSection: {
-    marginBottom: 0,
-  },
-  inputSectionMargin: {
-    marginTop: 20,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+    backgroundColor: '#5B7CFA',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#484646ff',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 8,
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
-    marginLeft: 8,
+    color: '#F8FAFC',
+    marginBottom: 8,
+  },
+  subLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#E2E8F0',
+    marginBottom: 6,
+  },
+  labelMargin: {
+    marginTop: 16,
   },
   input: {
-    backgroundColor: '#000000',
-    borderWidth: 2,
-    borderColor: '#000066',
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
-    color: '#FFFFFF',
-  },
-  saveButton: {
-    marginTop: 20,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  saveButtonGradient: {
-    flexDirection: 'row',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  infoCard: {
-    backgroundColor: '#000000',
+    backgroundColor: '#F1F5F9',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#000066',
+    fontSize: 16,
+    color: '#333739',
+    width: '100%',
   },
-  infoRow: {
-    flexDirection: 'row',
-  },
-  infoIcon: {
-    marginRight: 12,
-  },
-  infoTextContainer: {
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#3399FF',
-    marginBottom: 4,
-  },
-  infoDescription: {
-    fontSize: 13,
-    color: '#888888',
-    lineHeight: 18,
-  },
-  logoutButton: {
-    backgroundColor: '#000033',
-    borderRadius: 12,
+  inputFocused: {
+    borderColor: '#2563EB',
     borderWidth: 2,
-    borderColor: '#000066',
+  },
+  button: {
+    marginTop: 24,
+    borderRadius: 12,
     overflow: 'hidden',
   },
-  logoutButtonContent: {
-    flexDirection: 'row',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
+  buttonSolid: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     alignItems: 'center',
+  },
+  buttonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  infoMargin: {
+    marginTop: 32,
+    alignItems: 'center',
+    opacity: 0.8,
+  },
+  infoText: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  togglePasswordRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.2)'
+  },
+  passwordSection: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  passwordContainer: {
+    position: 'relative',
     justifyContent: 'center',
   },
-  logoutButtonText: {
-    color: '#EF4444',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 14,
+    zIndex: 10,
+  }
 });

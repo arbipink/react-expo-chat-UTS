@@ -7,7 +7,6 @@ import {
   SafeAreaView,
   Pressable,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useChatContext } from '../contexts/ChatContext';
 
@@ -35,12 +34,7 @@ export default function StarredMessagesScreen() {
 
           <View style={[styles.bubble, isOwnMessage && styles.ownBubble]}>
             {isOwnMessage ? (
-              <LinearGradient
-                colors={['#8B5CF6', '#EC4899']}
-                style={styles.ownBubbleGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
+              <View style={styles.ownBubbleColor}>
                 <Text style={styles.username}>{item.username}</Text>
                 <View style={styles.statusRow}>
                   <View style={[styles.statusDot, { backgroundColor: '#FCD34D' }]} />
@@ -49,7 +43,7 @@ export default function StarredMessagesScreen() {
                 <Text style={styles.messageTextOwn}>{item.text}</Text>
                 <View style={styles.footerRow}>
                   {item.isStarred && (
-                    <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} /> // MODIFIED: Bintang emas
+                    <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} />
                   )}
                   <Text style={styles.timestampOwn}>
                     {new Date(item.timestamp || Date.now()).toLocaleTimeString([], {
@@ -58,7 +52,7 @@ export default function StarredMessagesScreen() {
                     })}
                   </Text>
                 </View>
-              </LinearGradient>
+              </View>
             ) : (
               <View style={styles.otherBubbleContent}>
                 <Text style={[styles.username, { color: userColor }]}>{item.username}</Text>
@@ -69,7 +63,7 @@ export default function StarredMessagesScreen() {
                 <Text style={styles.messageText}>{item.text}</Text>
                 <View style={styles.footerRow}>
                   {item.isStarred && (
-                    <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} /> // MODIFIED: Bintang emas
+                    <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} />
                   )}
                   <Text style={styles.timestamp}>
                     {new Date(item.timestamp || Date.now()).toLocaleTimeString([], {
@@ -104,15 +98,10 @@ export default function StarredMessagesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#3399FF', '#0000FF']} // MODIFIED: Biru Terang ke Biru Tua
-        style={styles.header}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-      >
+      <View style={styles.header}>
         <Text style={styles.headerTitle}>Starred Messages</Text>
         <Text style={styles.headerSubtitle}>{starredMessages.length} messages</Text>
-      </LinearGradient>
+      </View>
 
       <FlatList
         data={starredMessages}
@@ -128,10 +117,11 @@ export default function StarredMessagesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#F8FAFC',
   },
   header: {
-    paddingTop: 16,
+    backgroundColor: '#000066',
+    paddingTop: 28,
     paddingBottom: 16,
     paddingHorizontal: 24,
   },
@@ -142,7 +132,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: '#F3E8FF',
     marginTop: 4,
   },
   messagesList: {
@@ -179,14 +169,15 @@ const styles = StyleSheet.create({
   ownBubble: {
     borderBottomRightRadius: 4,
   },
-  ownBubbleGradient: {
-    padding: 12,
+  ownBubbleColor: {
+    backgroundColor: '#5B7CFA',
+    padding: 18,
   },
   otherBubbleContent: {
-    backgroundColor: '#000033',
-    padding: 12,
+    backgroundColor: '#000066',
+    padding: 18,
     borderBottomLeftRadius: 4,
-    shadowColor: '#000',
+    shadowColor: '#484646ff',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.3,
     shadowRadius: 2,
@@ -256,7 +247,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#000066',
     marginTop: 16,
   },
   emptySubtitle: {
