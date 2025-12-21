@@ -18,7 +18,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useChatContext, Message, ChatRoom } from '../contexts/ChatContext';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 
-// --- UTILS ---
 const getUserColor = (username: string) => {
   const colors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899'];
   const hash = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -30,12 +29,12 @@ const formatTime = (timestamp?: string) => {
   return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-// --- SUB-COMPONENT: CHAT LIST ITEM ---
-const ChatListItem = ({ chat, onPress, currentUserEmail }: { chat: ChatRoom, onPress: () => void, currentUserEmail?: string }) => {
-  // Determine the "other" participant name to display
-  const otherParticipant = chat.participants.find(p => p !== currentUserEmail) || chat.participants[0] || 'Unknown';
+const ChatListItem = ({ chat, onPress, currentUser }: { chat: ChatRoom, onPress: () => void, currentUser: any }) => {
+  const otherParticipant = chat.participants.find(p => p !== currentUser?.email) || chat.participants[0] || 'Unknown';
   const lastMsg = chat.lastMessage;
   const userColor = getUserColor(otherParticipant);
+
+  const isMyMessage = lastMsg?.username === currentUser?.username;
 
   return (
     <TouchableOpacity style={styles.chatListItem} onPress={onPress}>
@@ -48,14 +47,15 @@ const ChatListItem = ({ chat, onPress, currentUserEmail }: { chat: ChatRoom, onP
           <Text style={styles.chatListTime}>{formatTime(lastMsg?.timestamp)}</Text>
         </View>
         <Text style={styles.chatListPreview} numberOfLines={1}>
-          {lastMsg ? (lastMsg.username === otherParticipant ? '' : 'You: ') + lastMsg.text : 'No messages yet'}
+          {lastMsg 
+            ? (isMyMessage ? 'You: ' : '') + lastMsg.text 
+            : 'No messages yet'}
         </Text>
       </View>
     </TouchableOpacity>
   );
 };
 
-// --- MAIN SCREEN ---
 export default function ChatScreen() {
   const { 
     currentUser, 
@@ -80,7 +80,6 @@ export default function ChatScreen() {
   const { showActionSheetWithOptions } = useActionSheet();
   const flatListRef = useRef<FlatList>(null);
 
-  // Get messages ONLY for the active room
   const activeMessages = activeChatId ? getMessagesForChat(activeChatId) : [];
 
   useEffect(() => {
@@ -122,6 +121,8 @@ export default function ChatScreen() {
     const isOwnMessage = item.username === currentUser?.username;
     const userColor = getUserColor(item.username);
 
+    const isStarred = item.starredBy && currentUser && item.starredBy.includes(currentUser.email);
+
     return (
       <Pressable
         onLongPress={() => {
@@ -161,7 +162,9 @@ export default function ChatScreen() {
               
               <View style={styles.footerRow}>
                 {item.isUpdate && <Text style={styles.updateMessage}>Edited</Text>}
-                {item.isStarred && <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} />}
+                
+                {isStarred && <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} />}
+                
                 <Text style={isOwnMessage ? styles.timestampOwn : styles.timestamp}>
                   {formatTime(item.timestamp)}
                 </Text>
@@ -189,7 +192,7 @@ export default function ChatScreen() {
           renderItem={({ item }) => (
             <ChatListItem 
               chat={item} 
-              currentUserEmail={currentUser?.email} 
+              currentUser={currentUser}
               onPress={() => openChat(item.id)} 
             />
           )}
@@ -321,7 +324,6 @@ const styles = StyleSheet.create({
   chatContainer: { flex: 1 },
   messagesList: { padding: 16, paddingBottom: 8 },
   
-  // CHAT LIST STYLES
   chatListItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -338,7 +340,6 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', marginTop: 50 },
   emptyStateText: { color: '#64748B', fontSize: 16 },
 
-  // MESSAGE BUBBLES
   messageContainer: { flexDirection: 'row', marginBottom: 16, alignItems: 'flex-end' },
   ownMessageContainer: { flexDirection: 'row-reverse' },
   avatar: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center' },
@@ -361,14 +362,12 @@ const styles = StyleSheet.create({
   timestamp: { fontSize: 10, color: '#94A3B8' },
   timestampOwn: { fontSize: 10, color: '#E0E7FF' },
 
-  // INPUT AREA
   inputContainer: { flexDirection: 'row', padding: 12, backgroundColor: '#000066', alignItems: 'flex-end' },
   input: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 16, maxHeight: 100, marginRight: 8 },
   sendButton: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden' },
   sendButtonDisabled: { opacity: 0.6 },
   sendButtonGradient: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  // MODAL STYLES
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { width: '80%', backgroundColor: '#000033', padding: 24, borderRadius: 16 },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#FFF', marginBottom: 16 },

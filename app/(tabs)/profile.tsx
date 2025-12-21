@@ -24,28 +24,22 @@ export default function ProfileScreen() {
   const { currentUser, updateUser, logout } = useChatContext();
   const router = useRouter();
 
-  // Profile State
   const [username, setUsername] = useState(currentUser?.username || '');
   const [status, setStatus] = useState(currentUser?.status || '');
   
-  // Password State
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPasswordText, setShowPasswordText] = useState(false); // Toggles text visibility for all password fields
+  const [showPasswordText, setShowPasswordText] = useState(false);
 
-  // UI State
   const [hasChanges, setHasChanges] = useState(false);
   const [isFocused, setIsFocused] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if basic info changed
     const basicInfoChanged = 
       username !== currentUser?.username || 
       status !== currentUser?.status;
-    
-    // Check if password fields have content
     const passwordAttempted = showChangePassword && (currentPassword !== '' || newPassword !== '');
 
     setHasChanges(basicInfoChanged || passwordAttempted);

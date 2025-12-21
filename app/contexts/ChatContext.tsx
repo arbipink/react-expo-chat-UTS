@@ -2,15 +2,15 @@ import * as React from 'react';
 import { createContext, useState, useContext, ReactNode, useEffect, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// --- TYPES ---
 export interface Message {
   id: string;
-  chatId: string; // Links message to specific room
+  chatId: string;
   username: string;
   text: string;
   timestamp: string;
   status: string;
-  isStarred?: boolean;
+  // CHANGED: Instead of isStarred (boolean), we track WHO starred it
+  starredBy?: string[]; 
   isUpdate?: boolean;
 }
 
@@ -31,7 +31,7 @@ interface ChatContextType {
   currentUser: User | null;
   chats: ChatRoom[];
   messages: Message[]; 
-  starredMessages: Message[]; // <--- Added this back!
+  starredMessages: Message[];
   activeChatId: string | null;
   isLoading: boolean;
   setCurrentUser: (user: User) => void;
@@ -50,7 +50,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
   USER: '@chat_app_user',
-  MESSAGES: '@chat_app_messages_v2', 
+  MESSAGES: '@chat_app_messages_v3', // Incremented version to clear old boolean data
   CHATS: '@chat_app_chats',
 };
 
@@ -61,12 +61,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load data on mount
   useEffect(() => {
     loadStoredData();
   }, []);
 
-  // Save data on changes
   useEffect(() => {
     if (!isLoading) {
       saveData();
@@ -100,7 +98,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             text: 'Welcome! Type an email to start a new private chat.',
             timestamp: new Date().toISOString(),
             status: 'System',
-            isStarred: false,
+            starredBy: [], // Initialize empty array
           },
         ]);
       }
@@ -124,8 +122,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const setCurrentUser = (user: User) => setCurrentUserState(user);
   const updateUser = (user: User) => setCurrentUserState(user);
 
-  // --- CHAT ROOM LOGIC ---
-
   const openChat = (chatId: string | null) => {
     setActiveChatId(chatId);
   };
@@ -133,7 +129,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const startChat = (email: string) => {
     if (!currentUser) return;
     
-    // Check if chat already exists
     const existingChat = chats.find(c => c.participants.includes(email) && c.participants.includes(currentUser.email));
     
     if (existingChat) {
@@ -152,8 +147,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     setActiveChatId(newChatId);
   };
 
-  // --- MESSAGE LOGIC ---
-
   const addMessage = (text: string) => {
     if (!currentUser || !activeChatId) return;
 
@@ -164,12 +157,11 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       text,
       timestamp: new Date().toISOString(),
       status: currentUser.status,
-      isStarred: false,
+      starredBy: [], // Initialize empty
     };
 
     setMessages(prev => [...prev, newMessage]);
 
-    // Update last message in chat list and re-sort
     setChats(prevChats => 
       prevChats.map(chat => 
         chat.id === activeChatId 
@@ -187,16 +179,38 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     return messages.filter(m => m.chatId === chatId);
   };
 
+  // --- CHANGED LOGIC HERE ---
   const toggleStarMessage = (messageId: string) => {
-    setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isStarred: !msg.isStarred } : msg));
+    if (!currentUser) return;
+
+    setMessages(prev => prev.map(msg => {
+      if (msg.id === messageId) {
+        const starredList = msg.starredBy || [];
+        const isAlreadyStarred = starredList.includes(currentUser.email);
+        
+        let newStarredList;
+        if (isAlreadyStarred) {
+          // Remove user from list
+          newStarredList = starredList.filter(email => email !== currentUser.email);
+        } else {
+          // Add user to list
+          newStarredList = [...starredList, currentUser.email];
+        }
+
+        return { ...msg, starredBy: newStarredList };
+      }
+      return msg;
+    }));
   };
 
-  // Calculate starred messages dynamically
+  // --- CHANGED FILTER HERE ---
   const starredMessages = useMemo(() => {
+    if (!currentUser) return [];
+    
     return messages
-      .filter(msg => msg.isStarred)
+      .filter(msg => msg.starredBy && msg.starredBy.includes(currentUser.email))
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [messages]);
+  }, [messages, currentUser]);
 
   const updateMessage = (messageId: string, newText: string) => {
     setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, text: newText, isUpdate: true } : msg));

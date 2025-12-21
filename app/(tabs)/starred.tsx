@@ -22,6 +22,9 @@ export default function StarredMessagesScreen() {
   const renderMessage = ({ item }: { item: any }) => {
     const isOwnMessage = item.username === currentUser?.username;
     const userColor = getUserColor(item.username);
+    
+    // Check if current user is in the starredBy list
+    const isStarred = item.starredBy && currentUser && item.starredBy.includes(currentUser.email);
 
     return (
       <Pressable onLongPress={() => toggleStarMessage(item.id)}>
@@ -42,7 +45,7 @@ export default function StarredMessagesScreen() {
                 </View>
                 <Text style={styles.messageTextOwn}>{item.text}</Text>
                 <View style={styles.footerRow}>
-                  {item.isStarred && (
+                  {isStarred && (
                     <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} />
                   )}
                   <Text style={styles.timestampOwn}>
@@ -62,7 +65,7 @@ export default function StarredMessagesScreen() {
                 </View>
                 <Text style={styles.messageText}>{item.text}</Text>
                 <View style={styles.footerRow}>
-                  {item.isStarred && (
+                  {isStarred && (
                     <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} />
                   )}
                   <Text style={styles.timestamp}>
