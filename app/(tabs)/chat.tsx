@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
+  Image,
   TextInput,
   TouchableOpacity,
   FlatList,
@@ -11,7 +12,8 @@ import {
   SafeAreaView,
   Pressable,
   Modal,
-  Alert
+  Alert,
+  Dimensions
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -65,6 +67,7 @@ export default function ChatScreen() {
     startChat,
     getMessagesForChat,
     addMessage, 
+    pickImage,
     toggleStarMessage, 
     updateMessage, 
     deleteMessage 
@@ -114,7 +117,7 @@ export default function ChatScreen() {
 
   const handleEdit = (msg: Message) => {
     setEditingMessage(msg);
-    setMessageText(msg.text);
+    setMessageText(msg.text ?? "");
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
@@ -158,7 +161,23 @@ export default function ChatScreen() {
             <View style={isOwnMessage ? styles.ownBubbleColor : styles.otherBubbleContent}>
               {!isOwnMessage && <Text style={[styles.username, { color: userColor }]}>{item.username}</Text>}
               
-              <Text style={isOwnMessage ? styles.messageTextOwn : styles.messageText}>{item.text}</Text>
+              {item.image && (
+              <Image
+                source={{ uri: item.image }}
+                style={[
+                  styles.imageMessage,
+                  isOwnMessage && styles.imageMessageOwn,
+                ]}
+              />
+              )}
+
+              {item.text && (
+                <Text style={isOwnMessage ? styles.messageTextOwn : styles.messageText}>
+                  {item.text}
+                </Text>
+              )}
+              
+              {/* <Text style={isOwnMessage ? styles.messageTextOwn : styles.messageText}>{item.text}</Text> */}
               
               <View style={styles.footerRow}>
                 {item.isUpdate && <Text style={styles.updateMessage}>Edited</Text>}
@@ -263,15 +282,23 @@ export default function ChatScreen() {
         />
 
         <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Type a message..."
-            placeholderTextColor="#9CA3AF"
-            value={messageText}
-            onChangeText={setMessageText}
-            multiline
-            maxLength={500}
-          />
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.input}
+              placeholder="Type a message..."
+              placeholderTextColor="#9CA3AF"
+              value={messageText}
+              onChangeText={setMessageText}
+              multiline
+              maxLength={500}
+            />
+
+            <TouchableOpacity style={styles.cameraButton} onPress={pickImage}>
+              <Ionicons name="camera-outline" size={30} color="#9CA3AF" />
+            </TouchableOpacity>
+
+          </View>
+
           <TouchableOpacity
             style={[styles.sendButton, !messageText.trim() && styles.sendButtonDisabled]}
             onPress={handleSend}
@@ -356,6 +383,11 @@ const styles = StyleSheet.create({
   messageText: { fontSize: 16, color: '#FFFFFF', lineHeight: 22 },
   messageTextOwn: { fontSize: 16, color: '#FFFFFF', lineHeight: 22 },
   
+  // imageMessage: { width: 200, height: 200, borderRadius: 12, marginBottom: 6, },
+  imageMessage: { width: Dimensions.get("window").width * 0.6, height: 200, borderRadius: 12, marginBottom: 6, },
+  cameraButton: { position: "absolute", right: 12, bottom: 10, marginRight: 8, marginVertical: 5,},
+  imageMessageOwn: { alignSelf: "flex-end", },
+
   footerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 },
   updateMessage: { fontSize: 10, color: '#BFDBFE', marginRight: 5 },
   starIcon: { marginRight: 5 },
@@ -363,7 +395,12 @@ const styles = StyleSheet.create({
   timestampOwn: { fontSize: 10, color: '#E0E7FF' },
 
   inputContainer: { flexDirection: 'row', padding: 12, backgroundColor: '#000066', alignItems: 'flex-end' },
-  input: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 16, maxHeight: 100, marginRight: 8 },
+  inputWrapper: {
+  flex: 1,
+  position: "relative",
+  marginRight: 8, // jarak ke send
+},
+  input: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 16, maxHeight: 100, marginRight: 8, paddingRight: 42 },
   sendButton: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden' },
   sendButtonDisabled: { opacity: 0.6 },
   sendButtonGradient: { flex: 1, justifyContent: 'center', alignItems: 'center' },

@@ -1,12 +1,14 @@
 import * as React from 'react'; 
 import { createContext, useState, useContext, ReactNode, useEffect, useMemo } from 'react';
+import * as  ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface Message {
   id: string;
   chatId: string;
   username: string;
-  text: string;
+  text?: string;
+  image?: string;
   timestamp: string;
   status: string;
   // CHANGED: Instead of isStarred (boolean), we track WHO starred it
@@ -39,6 +41,7 @@ interface ChatContextType {
   startChat: (email: string) => void;
   openChat: (chatId: string | null) => void;
   addMessage: (text: string) => void;
+  pickImage: () => void;
   toggleStarMessage: (messageId: string) => void;
   updateMessage: (messageId: string, newText: string) => void;
   deleteMessage: (messageId: string) => void;
@@ -175,6 +178,45 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
+  const pickImage = async () => {
+  if (!currentUser || !activeChatId) return;
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    quality: 0.7,
+  });
+
+  if (!result.canceled) {
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      chatId: activeChatId,
+      username: currentUser.username,
+      image: result.assets[0].uri,
+      timestamp: new Date().toISOString(),
+      status: currentUser.status,
+      starredBy: [],
+    };
+
+    setMessages(prev => [...prev, newMessage]);
+
+    setChats(prevChats =>
+      prevChats
+        .map(chat =>
+          chat.id === activeChatId
+            ? { ...chat, lastMessage: newMessage }
+            : chat
+        )
+        .sort((a, b) => {
+          const timeA = a.lastMessage?.timestamp || '0';
+          const timeB = b.lastMessage?.timestamp || '0';
+          return new Date(timeB).getTime() - new Date(timeA).getTime();
+        })
+    );
+  }
+};
+
+
   const getMessagesForChat = (chatId: string) => {
     return messages.filter(m => m.chatId === chatId);
   };
@@ -202,6 +244,20 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       return msg;
     }));
   };
+
+  // const getPreviewtext = (chat: string) => {
+  //   if (!chat.lastMessage) return "No Messages Yet";
+
+  //   if(chat.lastMessage.text?.trim()) {
+  //     return chats.lastMessage.text;
+  //   }
+
+  //   if (chats.lastMessage.image) {
+  //     return "📷 Photo"
+  //   }
+
+  //   return "";
+  // }
 
   // --- CHANGED FILTER HERE ---
   const starredMessages = useMemo(() => {
@@ -237,6 +293,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         messages,
         starredMessages,
         chats,
+        pickImage,
         activeChatId,
         isLoading,
         setCurrentUser,
