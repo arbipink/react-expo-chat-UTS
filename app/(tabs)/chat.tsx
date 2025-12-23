@@ -38,6 +38,20 @@ const ChatListItem = ({ chat, onPress, currentUser }: { chat: ChatRoom, onPress:
 
   const isMyMessage = lastMsg?.username === currentUser?.username;
 
+  const getPreviewText = () => {
+    if (!lastMsg) return 'No messages yet';
+    
+    const prefix = isMyMessage ? 'You: ' : '';
+    
+    if (lastMsg.text) {
+      return prefix + lastMsg.text;
+    } else if (lastMsg.image) {
+      return prefix + 'Image';
+    } else {
+      return prefix + 'Message';
+    }
+  };
+
   return (
     <TouchableOpacity style={styles.chatListItem} onPress={onPress}>
       <View style={[styles.avatar, { backgroundColor: userColor, marginRight: 15 }]}>
@@ -48,11 +62,11 @@ const ChatListItem = ({ chat, onPress, currentUser }: { chat: ChatRoom, onPress:
           <Text style={styles.chatListName}>{otherParticipant}</Text>
           <Text style={styles.chatListTime}>{formatTime(lastMsg?.timestamp)}</Text>
         </View>
+        
         <Text style={styles.chatListPreview} numberOfLines={1}>
-          {lastMsg 
-            ? (isMyMessage ? 'You: ' : '') + lastMsg.text 
-            : 'No messages yet'}
+          {getPreviewText()}
         </Text>
+        
       </View>
     </TouchableOpacity>
   );
@@ -398,7 +412,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
   flex: 1,
   position: "relative",
-  marginRight: 8, // jarak ke send
+  marginRight: 8,
 },
   input: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 16, maxHeight: 100, marginRight: 8, paddingRight: 42 },
   sendButton: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden' },
