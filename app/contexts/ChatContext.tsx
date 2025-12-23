@@ -1,7 +1,7 @@
 import * as React from 'react'; 
 import { createContext, useState, useContext, ReactNode, useEffect, useMemo } from 'react';
-import * as  ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// Note: We don't need expo-image-picker here anymore since you moved it to the screen!
 
 export interface Message {
   id: string;
@@ -11,7 +11,6 @@ export interface Message {
   image?: string;
   timestamp: string;
   status: string;
-  // CHANGED: Instead of isStarred (boolean), we track WHO starred it
   starredBy?: string[]; 
   isUpdate?: boolean;
 }
@@ -40,8 +39,9 @@ interface ChatContextType {
   updateUser: (user: User) => void;
   startChat: (email: string) => void;
   openChat: (chatId: string | null) => void;
-  addMessage: (text: string) => void;
-  pickImage: () => void;
+  // UPDATED: Now accepts optional image
+  addMessage: (text: string, image?: string | null) => void;
+  // REMOVED: pickImage (moved to UI layer)
   toggleStarMessage: (messageId: string) => void;
   updateMessage: (messageId: string, newText: string) => void;
   deleteMessage: (messageId: string) => void;
@@ -53,7 +53,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
   USER: '@chat_app_user',
-  MESSAGES: '@chat_app_messages_v3', // Incremented version to clear old boolean data
+  MESSAGES: '@chat_app_messages_v3', 
   CHATS: '@chat_app_chats',
 };
 
@@ -101,7 +101,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             text: 'Welcome! Type an email to start a new private chat.',
             timestamp: new Date().toISOString(),
             status: 'System',
-            starredBy: [], // Initialize empty array
+            starredBy: [], 
           },
         ]);
       }
@@ -150,17 +150,22 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     setActiveChatId(newChatId);
   };
 
-  const addMessage = (text: string) => {
+  // --- UPDATED ADD MESSAGE FUNCTION ---
+  const addMessage = (text: string, image?: string | null) => {
     if (!currentUser || !activeChatId) return;
+
+    // Ensure we don't send an empty message (neither text nor image)
+    if (!text.trim() && !image) return;
 
     const newMessage: Message = {
       id: Date.now().toString(),
       chatId: activeChatId,
       username: currentUser.username,
-      text,
+      text: text, // This can now be empty string if image is present
+      image: image || undefined, // If null passed, set to undefined
       timestamp: new Date().toISOString(),
       status: currentUser.status,
-      starredBy: [], // Initialize empty
+      starredBy: [], 
     };
 
     setMessages(prev => [...prev, newMessage]);
@@ -178,50 +183,12 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  const pickImage = async () => {
-  if (!currentUser || !activeChatId) return;
-
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsEditing: true,
-    quality: 0.7,
-  });
-
-  if (!result.canceled) {
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      chatId: activeChatId,
-      username: currentUser.username,
-      image: result.assets[0].uri,
-      timestamp: new Date().toISOString(),
-      status: currentUser.status,
-      starredBy: [],
-    };
-
-    setMessages(prev => [...prev, newMessage]);
-
-    setChats(prevChats =>
-      prevChats
-        .map(chat =>
-          chat.id === activeChatId
-            ? { ...chat, lastMessage: newMessage }
-            : chat
-        )
-        .sort((a, b) => {
-          const timeA = a.lastMessage?.timestamp || '0';
-          const timeB = b.lastMessage?.timestamp || '0';
-          return new Date(timeB).getTime() - new Date(timeA).getTime();
-        })
-    );
-  }
-};
-
+  // --- REMOVED pickImage FUNCTION (Logic moved to ChatScreen) ---
 
   const getMessagesForChat = (chatId: string) => {
     return messages.filter(m => m.chatId === chatId);
   };
 
-  // --- CHANGED LOGIC HERE ---
   const toggleStarMessage = (messageId: string) => {
     if (!currentUser) return;
 
@@ -232,10 +199,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         
         let newStarredList;
         if (isAlreadyStarred) {
-          // Remove user from list
           newStarredList = starredList.filter(email => email !== currentUser.email);
         } else {
-          // Add user to list
           newStarredList = [...starredList, currentUser.email];
         }
 
@@ -245,21 +210,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     }));
   };
 
-  // const getPreviewtext = (chat: string) => {
-  //   if (!chat.lastMessage) return "No Messages Yet";
-
-  //   if(chat.lastMessage.text?.trim()) {
-  //     return chats.lastMessage.text;
-  //   }
-
-  //   if (chats.lastMessage.image) {
-  //     return "📷 Photo"
-  //   }
-
-  //   return "";
-  // }
-
-  // --- CHANGED FILTER HERE ---
   const starredMessages = useMemo(() => {
     if (!currentUser) return [];
     
@@ -293,7 +243,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         messages,
         starredMessages,
         chats,
-        pickImage,
+        // pickImage, // REMOVED from export
         activeChatId,
         isLoading,
         setCurrentUser,

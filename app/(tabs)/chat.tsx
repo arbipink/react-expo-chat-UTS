@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker'; 
 import { useChatContext, Message, ChatRoom } from '../contexts/ChatContext';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 
@@ -40,9 +41,7 @@ const ChatListItem = ({ chat, onPress, currentUser }: { chat: ChatRoom, onPress:
 
   const getPreviewText = () => {
     if (!lastMsg) return 'No messages yet';
-    
     const prefix = isMyMessage ? 'You: ' : '';
-    
     if (lastMsg.text) {
       return prefix + lastMsg.text;
     } else if (lastMsg.image) {
@@ -62,11 +61,9 @@ const ChatListItem = ({ chat, onPress, currentUser }: { chat: ChatRoom, onPress:
           <Text style={styles.chatListName}>{otherParticipant}</Text>
           <Text style={styles.chatListTime}>{formatTime(lastMsg?.timestamp)}</Text>
         </View>
-        
         <Text style={styles.chatListPreview} numberOfLines={1}>
           {getPreviewText()}
         </Text>
-        
       </View>
     </TouchableOpacity>
   );
@@ -81,13 +78,15 @@ export default function ChatScreen() {
     startChat,
     getMessagesForChat,
     addMessage, 
-    pickImage,
     toggleStarMessage, 
     updateMessage, 
     deleteMessage 
   } = useChatContext();
 
   const [messageText, setMessageText] = useState('');
+  // 1. New State for local image preview
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  
   const [newChatEmail, setNewChatEmail] = useState('');
   const [isNewChatModalVisible, setIsNewChatModalVisible] = useState(false);
   const [isModalDelete, setModalDelete] = useState(false);
@@ -107,16 +106,40 @@ export default function ChatScreen() {
     }
   }, [activeMessages.length, activeChatId]);
 
+  const handlePickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true, 
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setSelectedImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log('Error picking image:', error);
+      Alert.alert('Error', 'Could not pick image');
+    }
+  };
+
+  const removeSelectedImage = () => {
+    setSelectedImage(null);
+  };
+
   const handleSend = () => {
-    if (!messageText.trim()) return;
+    if (!messageText.trim() && !selectedImage) return;
 
     if (editingMessage) {
       updateMessage(editingMessage.id, messageText.trim());
       setEditingMessage(null);
     } else {
-      addMessage(messageText.trim());
+      addMessage(messageText.trim(), selectedImage);
     }
+    
     setMessageText('');
+    setSelectedImage(null);
   };
 
   const handleStartNewChat = () => {
@@ -137,7 +160,6 @@ export default function ChatScreen() {
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = item.username === currentUser?.username;
     const userColor = getUserColor(item.username);
-
     const isStarred = item.starredBy && currentUser && item.starredBy.includes(currentUser.email);
 
     return (
@@ -191,13 +213,9 @@ export default function ChatScreen() {
                 </Text>
               )}
               
-              {/* <Text style={isOwnMessage ? styles.messageTextOwn : styles.messageText}>{item.text}</Text> */}
-              
               <View style={styles.footerRow}>
                 {item.isUpdate && <Text style={styles.updateMessage}>Edited</Text>}
-                
                 {isStarred && <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} />}
-                
                 <Text style={isOwnMessage ? styles.timestampOwn : styles.timestamp}>
                   {formatTime(item.timestamp)}
                 </Text>
@@ -236,29 +254,28 @@ export default function ChatScreen() {
             </View>
           }
         />
-
         <Modal visible={isNewChatModalVisible} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
+            <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>New Message</Text>
-              <TextInput
+                <Text style={styles.modalTitle}>New Message</Text>
+                <TextInput
                 style={styles.modalInput}
                 placeholder="Enter user email..."
                 placeholderTextColor="#999"
                 value={newChatEmail}
                 onChangeText={setNewChatEmail}
                 autoCapitalize="none"
-              />
-              <View style={styles.modalButtons}>
+                />
+                <View style={styles.modalButtons}>
                 <TouchableOpacity onPress={() => setIsNewChatModalVisible(false)}>
-                  <Text style={styles.modalButtonCancel}>Cancel</Text>
+                    <Text style={styles.modalButtonCancel}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleStartNewChat}>
-                  <Text style={styles.modalButtonConfirm}>Chat</Text>
+                    <Text style={styles.modalButtonConfirm}>Chat</Text>
                 </TouchableOpacity>
-              </View>
+                </View>
             </View>
-          </View>
+            </View>
         </Modal>
       </SafeAreaView>
     );
@@ -296,6 +313,16 @@ export default function ChatScreen() {
         />
 
         <View style={styles.inputContainer}>
+            {/* If there is a selected image, show it above the text input */}
+            {selectedImage && (
+                <View style={styles.previewContainer}>
+                    <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+                    <TouchableOpacity style={styles.removePreviewButton} onPress={removeSelectedImage}>
+                        <Ionicons name="close-circle" size={24} color="red" />
+                    </TouchableOpacity>
+                </View>
+            )}
+
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
@@ -307,19 +334,19 @@ export default function ChatScreen() {
               maxLength={500}
             />
 
-            <TouchableOpacity style={styles.cameraButton} onPress={pickImage}>
+            <TouchableOpacity style={styles.cameraButton} onPress={handlePickImage}>
               <Ionicons name="camera-outline" size={30} color="#9CA3AF" />
             </TouchableOpacity>
 
           </View>
 
           <TouchableOpacity
-            style={[styles.sendButton, !messageText.trim() && styles.sendButtonDisabled]}
+            style={[styles.sendButton, (!messageText.trim() && !selectedImage) && styles.sendButtonDisabled]}
             onPress={handleSend}
-            disabled={!messageText.trim()}
+            disabled={!messageText.trim() && !selectedImage}
           >
             <LinearGradient
-              colors={messageText.trim() ? ['#5B7CFA', '#5B7CFA'] : ['#444444', '#888888']}
+              colors={(messageText.trim() || selectedImage) ? ['#5B7CFA', '#5B7CFA'] : ['#444444', '#888888']}
               style={styles.sendButtonGradient}
             >
               <Ionicons name="send" size={20} color="#FFFFFF" />
@@ -327,7 +354,7 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-
+    
       <Modal visible={isModalDelete} transparent animationType="fade" onRequestClose={() => setModalDelete(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -397,7 +424,6 @@ const styles = StyleSheet.create({
   messageText: { fontSize: 16, color: '#FFFFFF', lineHeight: 22 },
   messageTextOwn: { fontSize: 16, color: '#FFFFFF', lineHeight: 22 },
   
-  // imageMessage: { width: 200, height: 200, borderRadius: 12, marginBottom: 6, },
   imageMessage: { width: Dimensions.get("window").width * 0.6, height: 200, borderRadius: 12, marginBottom: 6, },
   cameraButton: { position: "absolute", right: 12, bottom: 10, marginRight: 8, marginVertical: 5,},
   imageMessageOwn: { alignSelf: "flex-end", },
@@ -408,12 +434,42 @@ const styles = StyleSheet.create({
   timestamp: { fontSize: 10, color: '#94A3B8' },
   timestampOwn: { fontSize: 10, color: '#E0E7FF' },
 
-  inputContainer: { flexDirection: 'row', padding: 12, backgroundColor: '#000066', alignItems: 'flex-end' },
+  inputContainer: { 
+      padding: 12, 
+      backgroundColor: '#000066', 
+      flexDirection: 'row',
+      alignItems: 'flex-end' 
+  },
+  
+  previewContainer: {
+    position: 'absolute',
+    top: -110,
+    left: 12,
+    backgroundColor: '#000033',
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#5B7CFA',
+    zIndex: 10,
+  },
+  previewImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+  },
+  removePreviewButton: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+  },
+
   inputWrapper: {
   flex: 1,
   position: "relative",
   marginRight: 8,
-},
+  },
   input: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 16, maxHeight: 100, marginRight: 8, paddingRight: 42 },
   sendButton: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden' },
   sendButtonDisabled: { opacity: 0.6 },
