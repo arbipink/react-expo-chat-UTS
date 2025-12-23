@@ -6,6 +6,8 @@ import {
   StyleSheet,
   SafeAreaView,
   Pressable,
+  Image,
+  Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useChatContext } from '../contexts/ChatContext';
@@ -23,7 +25,6 @@ export default function StarredMessagesScreen() {
     const isOwnMessage = item.username === currentUser?.username;
     const userColor = getUserColor(item.username);
     
-    // Check if current user is in the starredBy list
     const isStarred = item.starredBy && currentUser && item.starredBy.includes(currentUser.email);
 
     return (
@@ -39,11 +40,18 @@ export default function StarredMessagesScreen() {
             {isOwnMessage ? (
               <View style={styles.ownBubbleColor}>
                 <Text style={styles.username}>{item.username}</Text>
-                <View style={styles.statusRow}>
-                  <View style={[styles.statusDot, { backgroundColor: '#FCD34D' }]} />
-                  <Text style={styles.statusTextOwn}>{item.status}</Text>
-                </View>
-                <Text style={styles.messageTextOwn}>{item.text}</Text>
+                
+                {item.image && (
+                  <Image
+                    source={{ uri: item.image }}
+                    style={[styles.imageMessage, styles.imageMessageOwn]}
+                  />
+                )}
+
+                {item.text ? (
+                   <Text style={styles.messageTextOwn}>{item.text}</Text>
+                ) : null}
+
                 <View style={styles.footerRow}>
                   {isStarred && (
                     <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} />
@@ -59,11 +67,18 @@ export default function StarredMessagesScreen() {
             ) : (
               <View style={styles.otherBubbleContent}>
                 <Text style={[styles.username, { color: userColor }]}>{item.username}</Text>
-                <View style={styles.statusRow}>
-                  <View style={[styles.statusDot, { backgroundColor: userColor }]} />
-                  <Text style={styles.statusText}>{item.status}</Text>
-                </View>
-                <Text style={styles.messageText}>{item.text}</Text>
+                
+                {item.image && (
+                  <Image
+                    source={{ uri: item.image }}
+                    style={styles.imageMessage}
+                  />
+                )}
+
+                {item.text ? (
+                  <Text style={styles.messageText}>{item.text}</Text>
+                ) : null}
+
                 <View style={styles.footerRow}>
                   {isStarred && (
                     <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} />
@@ -213,6 +228,17 @@ const styles = StyleSheet.create({
     color: '#F3E8FF',
     fontStyle: 'italic',
   },
+  // --- ADDED IMAGE STYLES ---
+  imageMessage: {
+    width: Dimensions.get("window").width * 0.5, // Slightly smaller than chat screen for starred view
+    height: 180,
+    borderRadius: 12,
+    marginBottom: 6,
+  },
+  imageMessageOwn: {
+    alignSelf: "flex-end",
+  },
+  // --------------------------
   messageText: {
     fontSize: 16,
     color: '#FFFFFF',
