@@ -209,6 +209,15 @@ export default function ProfileScreen() {
                             onChangeText={setCurrentPassword}
                             secureTextEntry={!showPasswordText}
                         />
+                        <Pressable
+                            style={styles.eyeIcon}
+                            onPress={() => setShowPasswordText(!showPasswordText)}>
+                            <Ionicons
+                            name={showPasswordText ? 'eye-off-outline' : 'eye-outline'}
+                            size={22}
+                            color="#64748B"
+                            />
+                        </Pressable>
                     </View>
 
                     <Text style={[styles.subLabel, styles.labelMargin]}>New Password</Text>
@@ -223,6 +232,15 @@ export default function ProfileScreen() {
                             onChangeText={setNewPassword}
                             secureTextEntry={!showPasswordText}
                         />
+                        <Pressable
+                            style={styles.eyeIcon}
+                            onPress={() => setShowPasswordText(!showPasswordText)}>
+                            <Ionicons
+                            name={showPasswordText ? 'eye-off-outline' : 'eye-outline'}
+                            size={22}
+                            color="#64748B"
+                            />
+                        </Pressable>
                     </View>
 
                     <Text style={[styles.subLabel, styles.labelMargin]}>Confirm Password</Text>
@@ -239,8 +257,7 @@ export default function ProfileScreen() {
                         />
                         <Pressable
                             style={styles.eyeIcon}
-                            onPress={() => setShowPasswordText(!showPasswordText)}
-                        >
+                            onPress={() => setShowPasswordText(!showPasswordText)}>
                             <Ionicons
                             name={showPasswordText ? 'eye-off-outline' : 'eye-outline'}
                             size={22}

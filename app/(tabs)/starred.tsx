@@ -228,10 +228,10 @@ const styles = StyleSheet.create({
     color: '#F3E8FF',
     fontStyle: 'italic',
   },
-  // --- ADDED IMAGE STYLES ---
+    
   imageMessage: {
-    width: Dimensions.get("window").width * 0.5, // Slightly smaller than chat screen for starred view
-    height: 180,
+    width: Dimensions.get("window").width * 0.2,
+    height: Dimensions.get("window").height * 0.2,
     borderRadius: 12,
     marginBottom: 6,
   },

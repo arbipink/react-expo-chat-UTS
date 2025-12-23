@@ -45,7 +45,7 @@ const ChatListItem = ({ chat, onPress, currentUser }: { chat: ChatRoom, onPress:
     if (lastMsg.text) {
       return prefix + lastMsg.text;
     } else if (lastMsg.image) {
-      return prefix + 'Image';
+      return prefix + '📷 Image';
     } else {
       return prefix + 'Message';
     }
@@ -84,19 +84,28 @@ export default function ChatScreen() {
   } = useChatContext();
 
   const [messageText, setMessageText] = useState('');
-  // 1. New State for local image preview
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  
+
+  const [isImageViewerVisible, setImageViewerVisible] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const [messages, setMessages] = useState<Message[]>([]);
+
   const [newChatEmail, setNewChatEmail] = useState('');
   const [isNewChatModalVisible, setIsNewChatModalVisible] = useState(false);
   const [isModalDelete, setModalDelete] = useState(false);
+  const [isModalImageVisible, setModalImageVisible] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   
   const { showActionSheetWithOptions } = useActionSheet();
   const flatListRef = useRef<FlatList>(null);
 
+  
+
   const activeMessages = activeChatId ? getMessagesForChat(activeChatId) : [];
+
+  const imagesInChat = activeMessages.filter(msg => msg.image);
 
   useEffect(() => {
     if (activeMessages.length > 0) {
@@ -123,6 +132,28 @@ export default function ChatScreen() {
       Alert.alert('Error', 'Could not pick image');
     }
   };
+
+  const handleOpenImage = (clickedImageUri: string | null | undefined) => {
+    if (!clickedImageUri) return;
+    
+    const index = imagesInChat.findIndex(img => img.image === clickedImageUri);
+    if (index >= 0) {
+        setCurrentImageIndex(index);
+        setImageViewerVisible(true);
+    }
+    };
+  
+    const handleNextImage = () => {
+    if (currentImageIndex < imagesInChat.length - 1) {
+        setCurrentImageIndex(currentImageIndex + 1);
+    }
+    };
+
+    const handlePrevImage = () => {
+        if (currentImageIndex > 0) {
+            setCurrentImageIndex(currentImageIndex - 1);
+        }
+    };
 
   const removeSelectedImage = () => {
     setSelectedImage(null);
@@ -151,6 +182,8 @@ export default function ChatScreen() {
     setNewChatEmail('');
     setIsNewChatModalVisible(false);
   };
+
+  
 
   const handleEdit = (msg: Message) => {
     setEditingMessage(msg);
@@ -198,13 +231,16 @@ export default function ChatScreen() {
               {!isOwnMessage && <Text style={[styles.username, { color: userColor }]}>{item.username}</Text>}
               
               {item.image && (
-              <Image
-                source={{ uri: item.image }}
-                style={[
-                  styles.imageMessage,
-                  isOwnMessage && styles.imageMessageOwn,
-                ]}
-              />
+                <TouchableOpacity onPress={() => handleOpenImage(item.image)} activeOpacity={0.9}>
+                  <Image
+                    source={{ uri: item.image }}
+                    style={[
+                      styles.imageMessage,
+                      isOwnMessage && styles.imageMessageOwn,
+                    ]}
+                  />
+
+                </TouchableOpacity>
               )}
 
               {item.text && (
@@ -316,7 +352,9 @@ export default function ChatScreen() {
             {/* If there is a selected image, show it above the text input */}
             {selectedImage && (
                 <View style={styles.previewContainer}>
-                    <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+                    <TouchableOpacity onPress={() => setModalImageVisible(true)}>
+                      <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+                    </TouchableOpacity>
                     <TouchableOpacity style={styles.removePreviewButton} onPress={removeSelectedImage}>
                         <Ionicons name="close-circle" size={24} color="red" />
                     </TouchableOpacity>
@@ -355,6 +393,7 @@ export default function ChatScreen() {
         </View>
       </KeyboardAvoidingView>
     
+      {/* Modal delete message */}
       <Modal visible={isModalDelete} transparent animationType="fade" onRequestClose={() => setModalDelete(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -371,6 +410,85 @@ export default function ChatScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Modal Preview Full Image */}
+      <Modal
+                visible={isModalImageVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setModalImageVisible(false)} 
+            >
+                <View style={styles.modalContainer}>
+                    <TouchableOpacity 
+                        style={styles.modalCloseButton} 
+                        onPress={() => setModalImageVisible(false)}
+                    >
+                        <Ionicons name="close" size={30} color="white" />
+                    </TouchableOpacity>
+
+                    {selectedImage && (
+                      <Image 
+                          source={{ uri: selectedImage }} 
+                          style={styles.fullScreenImage} 
+                          resizeMode="contain"
+                      />
+                    )}
+                </View>
+            </Modal>
+
+            {/* Modal Image Gallery */}
+            <Modal
+    visible={isImageViewerVisible}
+    transparent={true}
+    onRequestClose={() => setImageViewerVisible(false)}
+    animationType="fade"
+>
+    <View style={styles.galleryContainer}>
+        
+        {/* Tombol Close (Pojok Kanan Atas) */}
+        <TouchableOpacity 
+            style={styles.galleryCloseButton} 
+            onPress={() => setImageViewerVisible(false)}
+        >
+            <Ionicons name="close" size={30} color="white" />
+        </TouchableOpacity>
+
+        {/* --- Bagian Utama: Tombol Kiri + Gambar + Tombol Kanan --- */}
+        <View style={styles.galleryContent}>
+            
+            {/* Tombol PREV (Hanya muncul jika bukan gambar pertama) */}
+            {currentImageIndex > 0 ? (
+                <TouchableOpacity onPress={handlePrevImage} style={styles.navButton}>
+                    <Ionicons name="chevron-back" size={40} color="white" />
+                </TouchableOpacity>
+            ) : (
+                <View style={styles.navButton} /> // Spacer kosong agar layout tetap rapi
+            )}
+
+            {/* Gambar Utama */}
+            <Image
+                source={{ uri: imagesInChat[currentImageIndex]?.image || "" }}
+                style={styles.galleryImage}
+                resizeMode="contain"
+            />
+
+            {/* Tombol NEXT (Hanya muncul jika bukan gambar terakhir) */}
+            {currentImageIndex < imagesInChat.length - 1 ? (
+                <TouchableOpacity onPress={handleNextImage} style={styles.navButton}>
+                    <Ionicons name="chevron-forward" size={40} color="white" />
+                </TouchableOpacity>
+            ) : (
+                <View style={styles.navButton} /> // Spacer kosong
+            )}
+        </View>
+
+        {/* Indikator Halaman (Opsional: 1/5) */}
+        <Text style={styles.pageIndicator}>
+            {currentImageIndex + 1} / {imagesInChat.length}
+        </Text>
+    </View>
+</Modal>
+
     </SafeAreaView>
   );
 }
@@ -424,7 +542,7 @@ const styles = StyleSheet.create({
   messageText: { fontSize: 16, color: '#FFFFFF', lineHeight: 22 },
   messageTextOwn: { fontSize: 16, color: '#FFFFFF', lineHeight: 22 },
   
-  imageMessage: { width: Dimensions.get("window").width * 0.6, height: 200, borderRadius: 12, marginBottom: 6, },
+  imageMessage: { width: Dimensions.get("window").width * 0.3, height: Dimensions.get("window").height * 0.3, borderRadius: 12, marginBottom: 6, },
   cameraButton: { position: "absolute", right: 12, bottom: 10, marginRight: 8, marginVertical: 5,},
   imageMessageOwn: { alignSelf: "flex-end", },
 
@@ -482,4 +600,46 @@ const styles = StyleSheet.create({
   modalButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 16 },
   modalButtonCancel: { color: '#AAA', fontSize: 16 },
   modalButtonConfirm: { color: '#5B7CFA', fontSize: 16, fontWeight: 'bold' },
+  modalContainer: { flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center', },
+  fullScreenImage: { width: '100%', height: '80%', },
+  modalCloseButton: { position: 'absolute', top: 50, right: 20, zIndex: 1, padding: 10,},
+  galleryContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  galleryContent: {
+    flexDirection: 'row', 
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    height: '80%',
+  },
+  galleryImage: {
+    flex: 1,
+    height: '100%',
+    marginHorizontal: 10,
+  },
+  navButton: {
+    width: 60,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  galleryCloseButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 20,
+    padding: 10,
+  },
+  pageIndicator: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    position: 'absolute',
+    bottom: 40,
+  }
 });
