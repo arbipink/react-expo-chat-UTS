@@ -38,43 +38,41 @@ export default function SignUpScreen() {
     }
 
     if (password.length < 5) {
-        alert('Password must be at least 5 characters');
-        return;
-    }
-
-    try {
-   
-    const storedUsers = await AsyncStorage.getItem('users');
-    const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
-
-    const userExist = users.find(
-      u => u.username === username || u.email === email
-    );
-
-    if (userExist) {
-      alert('Username or email is already taken, please choose another one.');
+      alert('Password must be at least 5 characters');
       return;
     }
 
-    // User baru
-    const newUser = {
-      username: username.trim(),
-      email: email.trim(),
-      password,
-      status: 'Available',
-    };
+    try {
 
-    // Simpan
-    users.push(newUser);
-    await AsyncStorage.setItem('users', JSON.stringify(users));
+      const storedUsers = await AsyncStorage.getItem('users');
+      const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
 
-    alert('Registration successful! You can now log in.');
-    router.replace('/');
+      const userExist = users.find(
+        u => u.username === username || u.email === email
+      );
 
-  } catch (error) {
-    console.log(error);
-    alert('Sign up failed, please try again.');
-  }
+      if (userExist) {
+        alert('Username or email is already taken, please choose another one.');
+        return;
+      }
+
+      const newUser = {
+        username: username.trim(),
+        email: email.trim(),
+        password,
+        status: 'Available',
+      };
+
+      users.push(newUser);
+      await AsyncStorage.setItem('users', JSON.stringify(users));
+
+      alert('Registration successful! You can now log in.');
+      router.replace('/');
+
+    } catch (error) {
+      console.log(error);
+      alert('Sign up failed, please try again.');
+    }
 
   }
 
@@ -92,7 +90,7 @@ export default function SignUpScreen() {
   }
 
   return (
-    
+
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -133,54 +131,54 @@ export default function SignUpScreen() {
                 returnKeyType="done"
                 onSubmitEditing={handleSignUp}
               />
-              
+
               <Text style={[styles.label, styles.labelMargin]}>Password</Text>
               <View style={{ position: 'relative' }}>
                 <TextInput
-                style={[styles.input, isFocused && styles.inputFocused]}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                placeholder="Enter your password"
-                placeholderTextColor="#9CA3AF"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                returnKeyType="done"
+                  style={[styles.input, isFocused && styles.inputFocused]}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#9CA3AF"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  returnKeyType="done"
                 />
 
                 <Pressable
-                    style={styles.eyeIcon}
-                    onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                  onPress={() => setShowPassword(!showPassword)}
                 >
-                    <Ionicons
+                  <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={22}
                     color="#64748B"
-                    />
+                  />
                 </Pressable>
               </View>
-              
+
 
               <TouchableOpacity
                 style={[
                   styles.button,
                   !username.trim() && styles.buttonDisabled,
-                  { borderWidth: 2, borderColor: username.trim() ? '#000066' : '#444444' } 
+                  { borderWidth: 2, borderColor: username.trim() ? '#000066' : '#444444' }
                 ]}
                 onPress={handleSignUp}
                 disabled={!username.trim()}
                 activeOpacity={0.8}
               >
-                
+
                 <View
                   style={[
                     styles.buttonSolid,
-                    { backgroundColor: username.trim() ? '#0f307bff' : '#222222' } 
+                    { backgroundColor: username.trim() ? '#0f307bff' : '#222222' }
                   ]}
                 >
                   <Text style={[
                     styles.buttonText,
-                    { color: username.trim() ? '#E5E7EB' : '#AAAAAA' } 
+                    { color: username.trim() ? '#E5E7EB' : '#AAAAAA' }
                   ]}>
                     Sign Up
                   </Text>
@@ -191,13 +189,13 @@ export default function SignUpScreen() {
               <Text style={styles.signInText_1}>Already have an account?
                 <Link href={'/'} style={styles.signInText_2}> Sign In Now!</Link>
               </Text>
-              
+
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
-    
+
   );
 }
 

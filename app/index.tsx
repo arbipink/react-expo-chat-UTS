@@ -30,7 +30,6 @@ export default function LoginScreen() {
   const { setCurrentUser, currentUser, isLoading } = useChatContext();
   const router = useRouter();
 
-  // Auto-login if user exists
   useEffect(() => {
     if (!isLoading && currentUser) {
       router.replace('/(tabs)/chat');
@@ -38,64 +37,53 @@ export default function LoginScreen() {
   }, [currentUser, isLoading]);
 
   const handleLogin = async () => {
-  if (!username || !password) {
-    alert('Username dan password wajib diisi');
-    return;
-  }
-
-  try {
-    const storedUsers = await AsyncStorage.getItem('users');
-    const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
-
-    const user = users.find(
-      u => u.username === username && u.password === password
-    );
-
-    if (!user) {
-      alert('Username or password is incorrect');
+    if (!username || !password) {
+      alert('Username dan password wajib diisi');
       return;
     }
 
-    setCurrentUser({
-      username: user.username,
-      email: user.email,
-      password: user.password,
-      status: user.status,
-    });
+    try {
+      const storedUsers = await AsyncStorage.getItem('users');
+      const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
 
-    router.replace('/(tabs)/chat');
-  } catch (error) {
-    console.log(error);
-    alert('Login failed');
-  }
-};
+      const user = users.find(
+        u => u.username === username && u.password === password
+      );
 
-  // const handleLogin = () => {
-  //   if (username.trim()) {
-  //     setCurrentUser({
-  //       username: username.trim(),
-  //       status: status.trim() || 'Available'
-  //     });
-  //     router.replace('/(tabs)/chat');
-  //   }
-  // };
+      if (!user) {
+        alert('Username or password is incorrect');
+        return;
+      }
 
-  // Show loading while checking for stored user
+      setCurrentUser({
+        username: user.username,
+        email: user.email,
+        password: user.password,
+        status: user.status,
+      });
+
+      router.replace('/(tabs)/chat');
+    } catch (error) {
+      console.log(error);
+      alert('Login failed');
+    }
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView
-              style={{ flex: 1, backgroundColor: '#F8FAFC' }}
-            >
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#000066" />
-                <Text style={styles.loadingText}>Loading...</Text>
-              </View>
-        </SafeAreaView>
+        style={{ flex: 1, backgroundColor: '#F8FAFC' }}
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#000066" />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    
+
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -127,26 +115,26 @@ export default function LoginScreen() {
               <Text style={[styles.label, styles.labelMargin]}>Password</Text>
               <View style={{ position: 'relative' }}>
                 <TextInput
-                style={[styles.input, isFocused && styles.inputFocused]}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                placeholder="Enter your password"
-                placeholderTextColor="#9CA3AF"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                returnKeyType="done"
+                  style={[styles.input, isFocused && styles.inputFocused]}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#9CA3AF"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  returnKeyType="done"
                 />
 
                 <Pressable
-                    style={styles.eyeIcon}
-                    onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                  onPress={() => setShowPassword(!showPassword)}
                 >
-                    <Ionicons
+                  <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={22}
                     color="#64748B"
-                    />
+                  />
                 </Pressable>
               </View>
 
@@ -167,22 +155,22 @@ export default function LoginScreen() {
                 style={[
                   styles.button,
                   !username.trim() && styles.buttonDisabled,
-                  { borderWidth: 2, borderColor: username.trim() ? '#000066' : '#444444' } // MODIFIED: Border for button
+                  { borderWidth: 2, borderColor: username.trim() ? '#000066' : '#444444' }
                 ]}
                 onPress={handleLogin}
                 disabled={!username.trim()}
                 activeOpacity={0.8}
               >
-                
+
                 <View
                   style={[
                     styles.buttonSolid,
-                    { backgroundColor: username.trim() ? '#0f307bff' : '#222222' } // MODIFIED: Solid background color
+                    { backgroundColor: username.trim() ? '#0f307bff' : '#222222' }
                   ]}
                 >
                   <Text style={[
                     styles.buttonText,
-                    { color: username.trim() ? '#E5E7EB' : '#AAAAAA' } // MODIFIED: Text color
+                    { color: username.trim() ? '#E5E7EB' : '#AAAAAA' }
                   ]}>
                     Enter Chat Room
                   </Text>
@@ -193,13 +181,13 @@ export default function LoginScreen() {
               <Text style={styles.signUpText_1}>Don't have an account yet?
                 <Link href={'/signup'} style={styles.signUpText_2}> Sign Up Now!</Link>
               </Text>
-              
+
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
-    
+
   );
 }
 

@@ -26,7 +26,7 @@ export default function ProfileScreen() {
 
   const [username, setUsername] = useState(currentUser?.username || '');
   const [status, setStatus] = useState(currentUser?.status || '');
-  
+
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -37,8 +37,8 @@ export default function ProfileScreen() {
   const [isFocused, setIsFocused] = useState<string | null>(null);
 
   useEffect(() => {
-    const basicInfoChanged = 
-      username !== currentUser?.username || 
+    const basicInfoChanged =
+      username !== currentUser?.username ||
       status !== currentUser?.status;
     const passwordAttempted = showChangePassword && (currentPassword !== '' || newPassword !== '');
 
@@ -89,7 +89,7 @@ export default function ProfileScreen() {
       };
 
       const userIndex = users.findIndex((u: any) => u.email === currentUser?.email);
-      
+
       if (userIndex !== -1) {
         users[userIndex] = updatedUser;
         await AsyncStorage.setItem('users', JSON.stringify(users));
@@ -148,9 +148,9 @@ export default function ProfileScreen() {
         >
           <View style={styles.content}>
             <View style={[styles.largeAvatar, { backgroundColor: userColor }]}>
-                <Text style={styles.largeAvatarText}>
+              <Text style={styles.largeAvatarText}>
                 {currentUser?.username ? currentUser.username[0].toUpperCase() : '?'}
-                </Text>
+              </Text>
             </View>
 
             <Text style={styles.title}>Profile</Text>
@@ -180,120 +180,120 @@ export default function ProfileScreen() {
                 onChangeText={setStatus}
               />
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.togglePasswordRow}
                 onPress={() => setShowChangePassword(!showChangePassword)}
               >
-                 <Text style={[styles.label, { marginBottom: 0, color: '#F8FAFC' }]}>
-                    Security (Change Password)
-                 </Text>
-                 <Ionicons 
-                    name={showChangePassword ? "chevron-up" : "chevron-down"} 
-                    size={20} 
-                    color="#F8FAFC" 
-                 />
+                <Text style={[styles.label, { marginBottom: 0, color: '#F8FAFC' }]}>
+                  Security (Change Password)
+                </Text>
+                <Ionicons
+                  name={showChangePassword ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color="#F8FAFC"
+                />
               </TouchableOpacity>
 
               {showChangePassword && (
                 <View style={styles.passwordSection}>
-                    
-                    <Text style={styles.subLabel}>Current Password</Text>
-                    <View style={styles.passwordContainer}>
-                        <TextInput
-                            style={[styles.input, isFocused === 'currPass' && styles.inputFocused]}
-                            onFocus={() => setIsFocused('currPass')}
-                            onBlur={() => setIsFocused(null)}
-                            placeholder="Current password"
-                            placeholderTextColor="#9CA3AF"
-                            value={currentPassword}
-                            onChangeText={setCurrentPassword}
-                            secureTextEntry={!showPasswordText}
-                        />
-                        <Pressable
-                            style={styles.eyeIcon}
-                            onPress={() => setShowPasswordText(!showPasswordText)}>
-                            <Ionicons
-                            name={showPasswordText ? 'eye-off-outline' : 'eye-outline'}
-                            size={22}
-                            color="#64748B"
-                            />
-                        </Pressable>
-                    </View>
 
-                    <Text style={[styles.subLabel, styles.labelMargin]}>New Password</Text>
-                    <View style={styles.passwordContainer}>
-                        <TextInput
-                            style={[styles.input, isFocused === 'newPass' && styles.inputFocused]}
-                            onFocus={() => setIsFocused('newPass')}
-                            onBlur={() => setIsFocused(null)}
-                            placeholder="New password (min 5 chars)"
-                            placeholderTextColor="#9CA3AF"
-                            value={newPassword}
-                            onChangeText={setNewPassword}
-                            secureTextEntry={!showPasswordText}
-                        />
-                        <Pressable
-                            style={styles.eyeIcon}
-                            onPress={() => setShowPasswordText(!showPasswordText)}>
-                            <Ionicons
-                            name={showPasswordText ? 'eye-off-outline' : 'eye-outline'}
-                            size={22}
-                            color="#64748B"
-                            />
-                        </Pressable>
-                    </View>
+                  <Text style={styles.subLabel}>Current Password</Text>
+                  <View style={styles.passwordContainer}>
+                    <TextInput
+                      style={[styles.input, isFocused === 'currPass' && styles.inputFocused]}
+                      onFocus={() => setIsFocused('currPass')}
+                      onBlur={() => setIsFocused(null)}
+                      placeholder="Current password"
+                      placeholderTextColor="#9CA3AF"
+                      value={currentPassword}
+                      onChangeText={setCurrentPassword}
+                      secureTextEntry={!showPasswordText}
+                    />
+                    <Pressable
+                      style={styles.eyeIcon}
+                      onPress={() => setShowPasswordText(!showPasswordText)}>
+                      <Ionicons
+                        name={showPasswordText ? 'eye-off-outline' : 'eye-outline'}
+                        size={22}
+                        color="#64748B"
+                      />
+                    </Pressable>
+                  </View>
 
-                    <Text style={[styles.subLabel, styles.labelMargin]}>Confirm Password</Text>
-                    <View style={styles.passwordContainer}>
-                        <TextInput
-                            style={[styles.input, isFocused === 'confPass' && styles.inputFocused]}
-                            onFocus={() => setIsFocused('confPass')}
-                            onBlur={() => setIsFocused(null)}
-                            placeholder="Confirm new password"
-                            placeholderTextColor="#9CA3AF"
-                            value={confirmPassword}
-                            onChangeText={setConfirmPassword}
-                            secureTextEntry={!showPasswordText}
-                        />
-                        <Pressable
-                            style={styles.eyeIcon}
-                            onPress={() => setShowPasswordText(!showPasswordText)}>
-                            <Ionicons
-                            name={showPasswordText ? 'eye-off-outline' : 'eye-outline'}
-                            size={22}
-                            color="#64748B"
-                            />
-                        </Pressable>
-                    </View>
+                  <Text style={[styles.subLabel, styles.labelMargin]}>New Password</Text>
+                  <View style={styles.passwordContainer}>
+                    <TextInput
+                      style={[styles.input, isFocused === 'newPass' && styles.inputFocused]}
+                      onFocus={() => setIsFocused('newPass')}
+                      onBlur={() => setIsFocused(null)}
+                      placeholder="New password (min 5 chars)"
+                      placeholderTextColor="#9CA3AF"
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      secureTextEntry={!showPasswordText}
+                    />
+                    <Pressable
+                      style={styles.eyeIcon}
+                      onPress={() => setShowPasswordText(!showPasswordText)}>
+                      <Ionicons
+                        name={showPasswordText ? 'eye-off-outline' : 'eye-outline'}
+                        size={22}
+                        color="#64748B"
+                      />
+                    </Pressable>
+                  </View>
+
+                  <Text style={[styles.subLabel, styles.labelMargin]}>Confirm Password</Text>
+                  <View style={styles.passwordContainer}>
+                    <TextInput
+                      style={[styles.input, isFocused === 'confPass' && styles.inputFocused]}
+                      onFocus={() => setIsFocused('confPass')}
+                      onBlur={() => setIsFocused(null)}
+                      placeholder="Confirm new password"
+                      placeholderTextColor="#9CA3AF"
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      secureTextEntry={!showPasswordText}
+                    />
+                    <Pressable
+                      style={styles.eyeIcon}
+                      onPress={() => setShowPasswordText(!showPasswordText)}>
+                      <Ionicons
+                        name={showPasswordText ? 'eye-off-outline' : 'eye-outline'}
+                        size={22}
+                        color="#64748B"
+                      />
+                    </Pressable>
+                  </View>
                 </View>
               )}
 
               {hasChanges && (
                 <TouchableOpacity
-                    style={[
+                  style={[
                     styles.button,
-                    { borderWidth: 2, borderColor: '#000066' } 
-                    ]}
-                    onPress={handleSave}
-                    activeOpacity={0.8}
+                    { borderWidth: 2, borderColor: '#000066' }
+                  ]}
+                  onPress={handleSave}
+                  activeOpacity={0.8}
                 >
-                    <View
+                  <View
                     style={[
-                        styles.buttonSolid,
-                        { backgroundColor: '#0f307bff' } 
+                      styles.buttonSolid,
+                      { backgroundColor: '#0f307bff' }
                     ]}
-                    >
+                  >
                     <Text style={[styles.buttonText, { color: '#E5E7EB' }]}>
-                        Save Changes
+                      Save Changes
                     </Text>
-                    </View>
+                  </View>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
                 style={[
-                    styles.button, 
-                    { marginTop: hasChanges ? 16 : 24, borderWidth: 2, borderColor: '#EF4444' }
+                  styles.button,
+                  { marginTop: hasChanges ? 16 : 24, borderWidth: 2, borderColor: '#EF4444' }
                 ]}
                 onPress={handleLogout}
                 activeOpacity={0.8}
@@ -304,23 +304,23 @@ export default function ProfileScreen() {
                     { backgroundColor: '#FEE2E2' }
                   ]}
                 >
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Ionicons name="log-out-outline" size={20} color="#EF4444" style={{marginRight: 8}} />
-                        <Text style={[styles.buttonText, { color: '#EF4444' }]}>
-                            Logout
-                        </Text>
-                    </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons name="log-out-outline" size={20} color="#EF4444" style={{ marginRight: 8 }} />
+                    <Text style={[styles.buttonText, { color: '#EF4444' }]}>
+                      Logout
+                    </Text>
+                  </View>
                 </View>
               </TouchableOpacity>
             </View>
 
             {/* Info Section */}
             <View style={styles.infoMargin}>
-                <Ionicons name="information-circle-outline" size={16} color="#64748B" style={{marginBottom: 4}} />
-                <Text style={styles.infoText}>
-                    Updates to your profile are saved locally.{"\n"}
-                    Changing your password will affect your next login.
-                </Text>
+              <Ionicons name="information-circle-outline" size={16} color="#64748B" style={{ marginBottom: 4 }} />
+              <Text style={styles.infoText}>
+                Updates to your profile are saved locally.{"\n"}
+                Changing your password will affect your next login.
+              </Text>
             </View>
 
           </View>

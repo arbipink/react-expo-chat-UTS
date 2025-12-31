@@ -24,7 +24,7 @@ export default function StarredMessagesScreen() {
   const renderMessage = ({ item }: { item: any }) => {
     const isOwnMessage = item.username === currentUser?.username;
     const userColor = getUserColor(item.username);
-    
+
     const isStarred = item.starredBy && currentUser && item.starredBy.includes(currentUser.email);
 
     return (
@@ -40,7 +40,7 @@ export default function StarredMessagesScreen() {
             {isOwnMessage ? (
               <View style={styles.ownBubbleColor}>
                 <Text style={styles.username}>{item.username}</Text>
-                
+
                 {item.image && (
                   <Image
                     source={{ uri: item.image }}
@@ -49,7 +49,7 @@ export default function StarredMessagesScreen() {
                 )}
 
                 {item.text ? (
-                   <Text style={styles.messageTextOwn}>{item.text}</Text>
+                  <Text style={styles.messageTextOwn}>{item.text}</Text>
                 ) : null}
 
                 <View style={styles.footerRow}>
@@ -67,7 +67,7 @@ export default function StarredMessagesScreen() {
             ) : (
               <View style={styles.otherBubbleContent}>
                 <Text style={[styles.username, { color: userColor }]}>{item.username}</Text>
-                
+
                 {item.image && (
                   <Image
                     source={{ uri: item.image }}
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     color: '#F3E8FF',
     fontStyle: 'italic',
   },
-    
+
   imageMessage: {
     width: Dimensions.get("window").width * 0.2,
     height: Dimensions.get("window").height * 0.2,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   imageMessageOwn: {
     alignSelf: "flex-end",
   },
-  // --------------------------
+
   messageText: {
     fontSize: 16,
     color: '#FFFFFF',
