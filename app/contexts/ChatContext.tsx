@@ -1,253 +1,300 @@
 import * as React from 'react';
 import { createContext, useState, useContext, ReactNode, useEffect, useMemo } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User as FirebaseUser
+} from 'firebase/auth';
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  doc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+  deleteDoc,
+  setDoc,
+  serverTimestamp,
+  Timestamp,
+  getDocs
+} from 'firebase/firestore';
+import { auth, db } from '../../firebaseConfig';
 
 export interface Message {
   id: string;
   chatId: string;
+  senderEmail: string;
   username: string;
   text?: string;
   image?: string;
-  timestamp: string;
-  status: string;
+  createdAt: any; 
+  status: string; 
   starredBy?: string[];
   isUpdate?: boolean;
 }
 
-export interface User {
+export interface UserProfile {
   username: string;
-  status: string;
   email: string;
-  password: string;
+  status: string;
 }
 
 export interface ChatRoom {
   id: string;
-  participants: string[];
-  lastMessage?: Message;
+  participants: string[]; 
+  lastMessage?: {
+    text: string;
+    timestamp: any;
+  };
 }
 
 interface ChatContextType {
-  currentUser: User | null;
+  currentUser: FirebaseUser | null;
+  userProfile: UserProfile | null;
   chats: ChatRoom[];
   messages: Message[];
   starredMessages: Message[];
   activeChatId: string | null;
   isLoading: boolean;
-  setCurrentUser: (user: User) => void;
-  updateUser: (user: User) => void;
-  startChat: (email: string) => void;
+  startChat: (email: string) => Promise<void>;
   openChat: (chatId: string | null) => void;
-  addMessage: (text: string, image?: string | null) => void;
-  toggleStarMessage: (messageId: string) => void;
-  updateMessage: (messageId: string, newText: string) => void;
-  deleteMessage: (messageId: string) => void;
+  addMessage: (text: string, image?: string | null) => Promise<void>;
+  toggleStarMessage: (messageId: string, currentStarredBy: string[]) => Promise<void>;
+  updateMessage: (messageId: string, newText: string) => Promise<void>;
+  deleteMessage: (messageId: string) => Promise<void>;
   logout: () => void;
-  getMessagesForChat: (chatId: string) => Message[];
+  login: (email: string, pass: string) => Promise<void>;
+  register: (email: string, pass: string, username: string) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
-const STORAGE_KEYS = {
-  USER: '@chat_app_user',
-  MESSAGES: '@chat_app_messages_v3',
-  CHATS: '@chat_app_chats',
-};
-
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
-  const [currentUser, setCurrentUserState] = useState<User | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
   const [chats, setChats] = useState<ChatRoom[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 1. Listen for Auth State Changes
   useEffect(() => {
-    loadStoredData();
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      setIsLoading(true);
+
+      if (user) {
+        // Fetch extra user details (username, status) from 'users' collection
+        const userDocRef = doc(db, 'users', user.uid);
+        const unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setUserProfile(docSnap.data() as UserProfile);
+          }
+        });
+        setIsLoading(false);
+        return () => unsubscribeProfile();
+      } else {
+        setUserProfile(null);
+        setChats([]);
+        setMessages([]);
+        setIsLoading(false);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
+  // 2. Listen for User's Chats
   useEffect(() => {
-    if (!isLoading) {
-      saveData();
+    if (!currentUser || !currentUser.email) return;
+
+    // Query chats where 'participants' array contains current user's email
+    const q = query(
+      collection(db, 'chats'),
+      where('participants', 'array-contains', currentUser.email)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedChats = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as ChatRoom[];
+
+      // Sort locally by last message time
+      fetchedChats.sort((a, b) => {
+        const tA = a.lastMessage?.timestamp?.seconds || 0;
+        const tB = b.lastMessage?.timestamp?.seconds || 0;
+        return tB - tA;
+      });
+
+      setChats(fetchedChats);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  // 3. Listen for Messages in Active Chat
+  useEffect(() => {
+    if (!activeChatId) {
+      setMessages([]);
+      return;
     }
-  }, [messages, chats, currentUser, isLoading]);
 
-  const loadStoredData = async () => {
-    try {
-      const [storedUser, storedMessages, storedChats] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.USER),
-        AsyncStorage.getItem(STORAGE_KEYS.MESSAGES),
-        AsyncStorage.getItem(STORAGE_KEYS.CHATS),
-      ]);
+    // Messages are stored in a subcollection: chats/{chatId}/messages
+    const q = query(
+      collection(db, 'chats', activeChatId, 'messages'),
+      orderBy('createdAt', 'asc')
+    );
 
-      if (storedUser) setCurrentUserState(JSON.parse(storedUser));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedMessages = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Message[];
+      setMessages(fetchedMessages);
+    });
 
-      if (storedChats) {
-        setChats(JSON.parse(storedChats));
-      } else {
-        setChats([{ id: 'chatbot-room', participants: ['ChatBot'] }]);
-      }
+    return () => unsubscribe();
+  }, [activeChatId]);
 
-      if (storedMessages) {
-        setMessages(JSON.parse(storedMessages));
-      } else {
-        setMessages([
-          {
-            id: '1',
-            chatId: 'chatbot-room',
-            username: 'ChatBot',
-            text: 'Welcome! Type an email to start a new private chat.',
-            timestamp: new Date().toISOString(),
-            status: 'System',
-            starredBy: [],
-          },
-        ]);
-      }
-    } catch (error) {
-      console.error('Error loading stored data:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  // --- Actions ---
+
+  const login = async (email: string, pass: string) => {
+    await signInWithEmailAndPassword(auth, email, pass);
   };
 
-  const saveData = async () => {
-    try {
-      if (currentUser) await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
-      await AsyncStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
-      await AsyncStorage.setItem(STORAGE_KEYS.CHATS, JSON.stringify(chats));
-    } catch (error) {
-      console.error('Error saving data:', error);
-    }
+  const register = async (email: string, pass: string, username: string) => {
+    const res = await createUserWithEmailAndPassword(auth, email, pass);
+    // Create a user profile document
+    await setDoc(doc(db, 'users', res.user.uid), {
+      email,
+      username,
+      status: 'Online',
+      createdAt: serverTimestamp()
+    });
   };
 
-  const setCurrentUser = (user: User) => setCurrentUserState(user);
-  const updateUser = (user: User) => setCurrentUserState(user);
-
-  const openChat = (chatId: string | null) => {
-    setActiveChatId(chatId);
+  const logout = async () => {
+    setActiveChatId(null);
+    await signOut(auth);
   };
 
-  const startChat = (email: string) => {
-    if (!currentUser) return;
+  const startChat = async (targetEmail: string) => {
+    if (!currentUser?.email) return;
 
-    const existingChat = chats.find(c => c.participants.includes(email) && c.participants.includes(currentUser.email));
-
+    // Check if chat already exists
+    const existingChat = chats.find(c => c.participants.includes(targetEmail));
     if (existingChat) {
       setActiveChatId(existingChat.id);
       return;
     }
 
-    const newChatId = Date.now().toString();
-    const newChat: ChatRoom = {
-      id: newChatId,
-      participants: [currentUser.email, email],
-      lastMessage: undefined,
-    };
+    // Create new chat document
+    const newChatRef = await addDoc(collection(db, 'chats'), {
+      participants: [currentUser.email, targetEmail],
+      createdAt: serverTimestamp(),
+      lastMessage: null
+    });
 
-    setChats(prev => [newChat, ...prev]);
-    setActiveChatId(newChatId);
+    setActiveChatId(newChatRef.id);
   };
 
-  const addMessage = (text: string, image?: string | null) => {
-    if (!currentUser || !activeChatId) return;
+  const openChat = (chatId: string | null) => {
+    setActiveChatId(chatId);
+  };
 
+  const addMessage = async (text: string, image?: string | null) => {
+    if (!currentUser || !activeChatId || !userProfile) return;
     if (!text.trim() && !image) return;
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
+    const messageData = {
       chatId: activeChatId,
-      username: currentUser.username,
-      text: text,
-      image: image || undefined,
-      timestamp: new Date().toISOString(),
-      status: currentUser.status,
-      starredBy: [],
+      senderEmail: currentUser.email,
+      username: userProfile.username,
+      text,
+      image: image || null,
+      createdAt: serverTimestamp(), // Let server set the time
+      status: 'sent',
+      starredBy: []
     };
 
-    setMessages(prev => [...prev, newMessage]);
+    // 1. Add to messages subcollection
+    await addDoc(collection(db, 'chats', activeChatId, 'messages'), messageData);
 
-    setChats(prevChats =>
-      prevChats.map(chat =>
-        chat.id === activeChatId
-          ? { ...chat, lastMessage: newMessage }
-          : chat
-      ).sort((a, b) => {
-        const timeA = a.lastMessage?.timestamp || '0';
-        const timeB = b.lastMessage?.timestamp || '0';
-        return new Date(timeB).getTime() - new Date(timeA).getTime();
-      })
-    );
-  };
-
-  const getMessagesForChat = (chatId: string) => {
-    return messages.filter(m => m.chatId === chatId);
-  };
-
-  const toggleStarMessage = (messageId: string) => {
-    if (!currentUser) return;
-
-    setMessages(prev => prev.map(msg => {
-      if (msg.id === messageId) {
-        const starredList = msg.starredBy || [];
-        const isAlreadyStarred = starredList.includes(currentUser.email);
-
-        let newStarredList;
-        if (isAlreadyStarred) {
-          newStarredList = starredList.filter(email => email !== currentUser.email);
-        } else {
-          newStarredList = [...starredList, currentUser.email];
-        }
-
-        return { ...msg, starredBy: newStarredList };
+    // 2. Update the main chat document with last message info
+    const chatRef = doc(db, 'chats', activeChatId);
+    await updateDoc(chatRef, {
+      lastMessage: {
+        text: text || 'Image',
+        timestamp: serverTimestamp()
       }
-      return msg;
-    }));
+    });
   };
 
-  const starredMessages = useMemo(() => {
-    if (!currentUser) return [];
+  const toggleStarMessage = async (messageId: string, currentStarredBy: string[] = []) => {
+    if (!currentUser?.email || !activeChatId) return;
 
-    return messages
-      .filter(msg => msg.starredBy && msg.starredBy.includes(currentUser.email))
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [messages, currentUser]);
+    const messageRef = doc(db, 'chats', activeChatId, 'messages', messageId);
+    const isStarred = currentStarredBy.includes(currentUser.email);
 
-  const updateMessage = (messageId: string, newText: string) => {
-    setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, text: newText, isUpdate: true } : msg));
-  };
-
-  const deleteMessage = (messageId: string) => {
-    setMessages(prev => prev.filter(msg => msg.id !== messageId));
-  };
-
-  const logout = async () => {
-    try {
-      await AsyncStorage.removeItem(STORAGE_KEYS.USER);
-      setCurrentUserState(null);
-      setActiveChatId(null);
-    } catch (error) {
-      console.error('Error logging out:', error);
+    if (isStarred) {
+      await updateDoc(messageRef, {
+        starredBy: arrayRemove(currentUser.email)
+      });
+    } else {
+      await updateDoc(messageRef, {
+        starredBy: arrayUnion(currentUser.email)
+      });
     }
   };
+
+  const updateMessage = async (messageId: string, newText: string) => {
+    if (!activeChatId) return;
+    const messageRef = doc(db, 'chats', activeChatId, 'messages', messageId);
+    await updateDoc(messageRef, {
+      text: newText,
+      isUpdate: true
+    });
+  };
+
+  const deleteMessage = async (messageId: string) => {
+    if (!activeChatId) return;
+    await deleteDoc(doc(db, 'chats', activeChatId, 'messages', messageId));
+  };
+
+  // Calculate starred messages locally from the current messages list
+  const starredMessages = useMemo(() => {
+    if (!currentUser?.email) return [];
+    return messages
+      .filter(msg => msg.starredBy && msg.starredBy.includes(currentUser.email!))
+      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  }, [messages, currentUser]);
 
   return (
     <ChatContext.Provider
       value={{
         currentUser,
+        userProfile,
         messages,
         starredMessages,
         chats,
         activeChatId,
         isLoading,
-        setCurrentUser,
-        updateUser,
         startChat,
         openChat,
         addMessage,
         logout,
+        login,
+        register,
         toggleStarMessage,
         updateMessage,
         deleteMessage,
-        getMessagesForChat
       }}
     >
       {children}

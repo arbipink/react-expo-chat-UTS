@@ -39,3 +39,6 @@ yarn-error.*
 app-example
 
 .metro-cache
+
+google-services.json
+firebaseConfig.ts

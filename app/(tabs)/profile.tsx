@@ -16,16 +16,25 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useChatContext } from '../contexts/ChatContext';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { doc, updateDoc } from 'firebase/firestore';
+import { updatePassword as firebaseUpdatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { db, auth } from '../../firebaseConfig';
 
 const { height } = Dimensions.get('window');
 
 export default function ProfileScreen() {
-  const { currentUser, updateUser, logout } = useChatContext();
+  const { currentUser, userProfile, logout } = useChatContext();
   const router = useRouter();
 
-  const [username, setUsername] = useState(currentUser?.username || '');
-  const [status, setStatus] = useState(currentUser?.status || '');
+  const [username, setUsername] = useState('');
+  const [status, setStatus] = useState('');
+
+  useEffect(() => {
+    if (userProfile) {
+      setUsername(userProfile.username || '');
+      setStatus(userProfile.status || '');
+    }
+  }, [userProfile]);
 
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -38,64 +47,50 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     const basicInfoChanged =
-      username !== currentUser?.username ||
-      status !== currentUser?.status;
+      username !== userProfile?.username ||
+      status !== userProfile?.status;
     const passwordAttempted = showChangePassword && (currentPassword !== '' || newPassword !== '');
 
     setHasChanges(basicInfoChanged || passwordAttempted);
-  }, [username, status, currentUser, currentPassword, newPassword, showChangePassword]);
+  }, [username, status, userProfile, currentPassword, newPassword, showChangePassword]);
 
   const handleSave = async () => {
+    if (!currentUser) return;
+
     if (!username.trim()) {
       Alert.alert('Error', 'Username cannot be empty');
       return;
     }
 
-    let finalPassword = currentUser?.password;
-
-    if (showChangePassword) {
-      if (!currentPassword || !newPassword || !confirmPassword) {
-        Alert.alert('Error', 'Please fill in all password fields');
-        return;
-      }
-
-      if (currentPassword !== currentUser?.password) {
-        Alert.alert('Error', 'Current password is incorrect');
-        return;
-      }
-
-      if (newPassword.length < 5) {
-        Alert.alert('Error', 'New password must be at least 5 characters');
-        return;
-      }
-
-      if (newPassword !== confirmPassword) {
-        Alert.alert('Error', 'New passwords do not match');
-        return;
-      }
-
-      finalPassword = newPassword;
-    }
-
     try {
-      const storedUsers = await AsyncStorage.getItem('users');
-      let users = storedUsers ? JSON.parse(storedUsers) : [];
+      if (showChangePassword) {
+        if (!currentPassword || !newPassword || !confirmPassword) {
+          Alert.alert('Error', 'Please fill in all password fields');
+          return;
+        }
 
-      const updatedUser = {
-        ...currentUser!,
-        username: username.trim(),
-        status: status.trim() || 'Available',
-        password: finalPassword!,
-      };
+        if (newPassword.length < 6) {
+          Alert.alert('Error', 'New password must be at least 6 characters');
+          return;
+        }
 
-      const userIndex = users.findIndex((u: any) => u.email === currentUser?.email);
+        if (newPassword !== confirmPassword) {
+          Alert.alert('Error', 'New passwords do not match');
+          return;
+        }
 
-      if (userIndex !== -1) {
-        users[userIndex] = updatedUser;
-        await AsyncStorage.setItem('users', JSON.stringify(users));
+        if (currentUser.email) {
+          const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+          await reauthenticateWithCredential(currentUser, credential);
+          await firebaseUpdatePassword(currentUser, newPassword);
+        }
       }
 
-      updateUser(updatedUser);
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        username: username.trim(),
+        status: status.trim() || 'Available'
+      });
 
       Alert.alert('Success', 'Profile updated successfully!');
       setHasChanges(false);
@@ -104,9 +99,13 @@ export default function ProfileScreen() {
       setNewPassword('');
       setConfirmPassword('');
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      Alert.alert('Error', 'Failed to save profile');
+      if (error.code === 'auth/wrong-password') {
+        Alert.alert('Error', 'Current password is incorrect');
+      } else {
+        Alert.alert('Error', 'Failed to save profile: ' + error.message);
+      }
     }
   };
 
@@ -128,13 +127,14 @@ export default function ProfileScreen() {
     );
   };
 
-  const getUserColor = (username: string) => {
+  const getUserColor = (name: string) => {
+    const safeName = name || 'User';
     const colors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899'];
-    const hash = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const hash = safeName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return colors[hash % colors.length];
   };
 
-  const userColor = getUserColor(currentUser?.username || 'User');
+  const userColor = getUserColor(username || 'User');
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
@@ -149,7 +149,7 @@ export default function ProfileScreen() {
           <View style={styles.content}>
             <View style={[styles.largeAvatar, { backgroundColor: userColor }]}>
               <Text style={styles.largeAvatarText}>
-                {currentUser?.username ? currentUser.username[0].toUpperCase() : '?'}
+                {username ? username[0].toUpperCase() : '?'}
               </Text>
             </View>
 
@@ -226,7 +226,7 @@ export default function ProfileScreen() {
                       style={[styles.input, isFocused === 'newPass' && styles.inputFocused]}
                       onFocus={() => setIsFocused('newPass')}
                       onBlur={() => setIsFocused(null)}
-                      placeholder="New password (min 5 chars)"
+                      placeholder="New password (min 6 chars)"
                       placeholderTextColor="#9CA3AF"
                       value={newPassword}
                       onChangeText={setNewPassword}
@@ -318,7 +318,7 @@ export default function ProfileScreen() {
             <View style={styles.infoMargin}>
               <Ionicons name="information-circle-outline" size={16} color="#64748B" style={{ marginBottom: 4 }} />
               <Text style={styles.infoText}>
-                Updates to your profile are saved locally.{"\n"}
+                Your profile is now synced online.{"\n"}
                 Changing your password will affect your next login.
               </Text>
             </View>

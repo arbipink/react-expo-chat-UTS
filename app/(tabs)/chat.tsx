@@ -21,44 +21,51 @@ import * as ImagePicker from 'expo-image-picker';
 import { useChatContext, Message, ChatRoom } from '../contexts/ChatContext';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 
+// Helper for consistent user colors
 const getUserColor = (username: string) => {
+  const safeName = username || 'User';
   const colors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899'];
-  const hash = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const hash = safeName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return colors[hash % colors.length];
 };
 
-const formatTime = (timestamp?: string) => {
+// Helper to handle Firestore Timestamps vs Dates
+const formatTime = (timestamp: any) => {
   if (!timestamp) return '';
+  if (timestamp.seconds) {
+    return new Date(timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  // Fallback for standard Date objects or strings
   return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-const ChatListItem = ({ chat, onPress, currentUser }: { chat: ChatRoom, onPress: () => void, currentUser: any }) => {
-  const otherParticipant = chat.participants.find(p => p !== currentUser?.email) || chat.participants[0] || 'Unknown';
-  const lastMsg = chat.lastMessage;
-  const userColor = getUserColor(otherParticipant);
+// Component for the list of chats (Inbox view)
+const ChatListItem = ({ chat, onPress, currentUserEmail }: { chat: ChatRoom, onPress: () => void, currentUserEmail?: string }) => {
+  // Find the other participant's email
+  const otherParticipantEmail = chat.participants.find(p => p !== currentUserEmail) || 'Unknown';
+  // Use email as name since we might not have their username loaded in the chat list view yet
+  const displayName = otherParticipantEmail.split('@')[0];
 
-  const isMyMessage = lastMsg?.username === currentUser?.username;
+  const lastMsg = chat.lastMessage;
+  const userColor = getUserColor(displayName);
 
   const getPreviewText = () => {
     if (!lastMsg) return 'No messages yet';
-    const prefix = isMyMessage ? 'You: ' : '';
     if (lastMsg.text) {
-      return prefix + lastMsg.text;
-    } else if (lastMsg.image) {
-      return prefix + '📷 Image';
+      return lastMsg.text;
     } else {
-      return prefix + 'Message';
+      return '📷 Image';
     }
   };
 
   return (
     <TouchableOpacity style={styles.chatListItem} onPress={onPress}>
       <View style={[styles.avatar, { backgroundColor: userColor, marginRight: 15 }]}>
-        <Text style={styles.avatarText}>{otherParticipant[0].toUpperCase()}</Text>
+        <Text style={styles.avatarText}>{displayName[0]?.toUpperCase()}</Text>
       </View>
       <View style={styles.chatListContent}>
         <View style={styles.chatListHeader}>
-          <Text style={styles.chatListName}>{otherParticipant}</Text>
+          <Text style={styles.chatListName}>{displayName}</Text>
           <Text style={styles.chatListTime}>{formatTime(lastMsg?.timestamp)}</Text>
         </View>
         <Text style={styles.chatListPreview} numberOfLines={1}>
@@ -72,11 +79,12 @@ const ChatListItem = ({ chat, onPress, currentUser }: { chat: ChatRoom, onPress:
 export default function ChatScreen() {
   const {
     currentUser,
+    userProfile,
     chats,
     activeChatId,
     openChat,
     startChat,
-    getMessagesForChat,
+    messages,
     addMessage,
     toggleStarMessage,
     updateMessage,
@@ -89,8 +97,6 @@ export default function ChatScreen() {
   const [isImageViewerVisible, setImageViewerVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const [messages, setMessages] = useState<Message[]>([]);
-
   const [newChatEmail, setNewChatEmail] = useState('');
   const [isNewChatModalVisible, setIsNewChatModalVisible] = useState(false);
   const [isModalDelete, setModalDelete] = useState(false);
@@ -101,19 +107,15 @@ export default function ChatScreen() {
   const { showActionSheetWithOptions } = useActionSheet();
   const flatListRef = useRef<FlatList>(null);
 
-
-
-  const activeMessages = activeChatId ? getMessagesForChat(activeChatId) : [];
-
-  const imagesInChat = activeMessages.filter(msg => msg.image);
+  const imagesInChat = messages.filter(msg => msg.image);
 
   useEffect(() => {
-    if (activeMessages.length > 0) {
+    if (messages.length > 0) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
-  }, [activeMessages.length, activeChatId]);
+  }, [messages.length, activeChatId]);
 
   const handlePickImage = async () => {
     try {
@@ -159,31 +161,37 @@ export default function ChatScreen() {
     setSelectedImage(null);
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!messageText.trim() && !selectedImage) return;
 
-    if (editingMessage) {
-      updateMessage(editingMessage.id, messageText.trim());
-      setEditingMessage(null);
-    } else {
-      addMessage(messageText.trim(), selectedImage);
+    try {
+      if (editingMessage) {
+        await updateMessage(editingMessage.id, messageText.trim());
+        setEditingMessage(null);
+      } else {
+        await addMessage(messageText.trim(), selectedImage);
+      }
+      setMessageText('');
+      setSelectedImage(null);
+    } catch (error) {
+      console.error("Send error:", error);
+      Alert.alert("Error", "Could not send message.");
     }
-
-    setMessageText('');
-    setSelectedImage(null);
   };
 
-  const handleStartNewChat = () => {
+  const handleStartNewChat = async () => {
     if (!newChatEmail.trim()) {
       Alert.alert('Error', 'Please enter an email address');
       return;
     }
-    startChat(newChatEmail.trim());
-    setNewChatEmail('');
-    setIsNewChatModalVisible(false);
+    try {
+      await startChat(newChatEmail.trim());
+      setNewChatEmail('');
+      setIsNewChatModalVisible(false);
+    } catch (e) {
+      Alert.alert('Error', 'Could not start chat. Check the email.');
+    }
   };
-
-
 
   const handleEdit = (msg: Message) => {
     setEditingMessage(msg);
@@ -191,9 +199,10 @@ export default function ChatScreen() {
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
-    const isOwnMessage = item.username === currentUser?.username;
+    const isOwnMessage = item.senderEmail === currentUser?.email;
     const userColor = getUserColor(item.username);
-    const isStarred = item.starredBy && currentUser && item.starredBy.includes(currentUser.email);
+
+    const isStarred = item.starredBy && currentUser?.email && item.starredBy.includes(currentUser.email);
 
     return (
       <Pressable
@@ -201,7 +210,7 @@ export default function ChatScreen() {
           if (!isOwnMessage) {
             const options = ["Star", "Cancel"];
             showActionSheetWithOptions({ options, cancelButtonIndex: 1 }, (btnIndex) => {
-              if (btnIndex === 0) toggleStarMessage(item.id);
+              if (btnIndex === 0) toggleStarMessage(item.id, item.starredBy || []);
             });
             return;
           }
@@ -210,7 +219,7 @@ export default function ChatScreen() {
             { options, destructiveButtonIndex: 2, cancelButtonIndex: 3 },
             (buttonIndex) => {
               if (buttonIndex === 0) handleEdit(item);
-              else if (buttonIndex === 1) toggleStarMessage(item.id);
+              else if (buttonIndex === 1) toggleStarMessage(item.id, item.starredBy || []);
               else if (buttonIndex === 2) {
                 setSelectedMessage(item);
                 setModalDelete(true);
@@ -222,7 +231,7 @@ export default function ChatScreen() {
         <View style={[styles.messageContainer, isOwnMessage && styles.ownMessageContainer]}>
           {!isOwnMessage && (
             <View style={[styles.avatarSmall, { backgroundColor: userColor }]}>
-              <Text style={styles.avatarTextSmall}>{item.username[0].toUpperCase()}</Text>
+              <Text style={styles.avatarTextSmall}>{item.username ? item.username[0].toUpperCase() : '?'}</Text>
             </View>
           )}
 
@@ -239,7 +248,6 @@ export default function ChatScreen() {
                       isOwnMessage && styles.imageMessageOwn,
                     ]}
                   />
-
                 </TouchableOpacity>
               )}
 
@@ -253,7 +261,7 @@ export default function ChatScreen() {
                 {item.isUpdate && <Text style={styles.updateMessage}>Edited</Text>}
                 {isStarred && <Ionicons name="star" size={14} color="#FFD700" style={styles.starIcon} />}
                 <Text style={isOwnMessage ? styles.timestampOwn : styles.timestamp}>
-                  {formatTime(item.timestamp)}
+                  {formatTime(item.createdAt)}
                 </Text>
               </View>
             </View>
@@ -279,7 +287,7 @@ export default function ChatScreen() {
           renderItem={({ item }) => (
             <ChatListItem
               chat={item}
-              currentUser={currentUser}
+              currentUserEmail={currentUser?.email || ''}
               onPress={() => openChat(item.id)}
             />
           )}
@@ -290,6 +298,7 @@ export default function ChatScreen() {
             </View>
           }
         />
+
         <Modal visible={isNewChatModalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
@@ -301,6 +310,7 @@ export default function ChatScreen() {
                 value={newChatEmail}
                 onChangeText={setNewChatEmail}
                 autoCapitalize="none"
+                keyboardType="email-address"
               />
               <View style={styles.modalButtons}>
                 <TouchableOpacity onPress={() => setIsNewChatModalVisible(false)}>
@@ -316,9 +326,10 @@ export default function ChatScreen() {
       </SafeAreaView>
     );
   }
-
+  
   const currentChat = chats.find(c => c.id === activeChatId);
-  const chatPartner = currentChat?.participants.find(p => p !== currentUser?.email) || 'Chat';
+  const otherParticipant = currentChat?.participants.find(p => p !== currentUser?.email) || 'Chat';
+  const chatTitle = otherParticipant.split('@')[0];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -328,8 +339,8 @@ export default function ChatScreen() {
             <Ionicons name="arrow-back" size={24} color="#FFF" />
           </TouchableOpacity>
           <View>
-            <Text style={styles.headerTitle}>{chatPartner}</Text>
-            <Text style={styles.headerSubtitle}>{activeMessages.length} messages</Text>
+            <Text style={styles.headerTitle}>{chatTitle}</Text>
+            <Text style={styles.headerSubtitle}>{messages.length} messages</Text>
           </View>
         </View>
       </View>
@@ -341,7 +352,7 @@ export default function ChatScreen() {
       >
         <FlatList
           ref={flatListRef}
-          data={activeMessages}
+          data={messages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesList}
@@ -401,7 +412,10 @@ export default function ChatScreen() {
               <TouchableOpacity onPress={() => setModalDelete(false)}>
                 <Text style={{ fontSize: 16, color: "#CCCCCC" }}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => { if (selectedMessage) deleteMessage(selectedMessage.id); setModalDelete(false); }}>
+              <TouchableOpacity onPress={async () => {
+                if (selectedMessage) await deleteMessage(selectedMessage.id);
+                setModalDelete(false);
+              }}>
                 <Text style={{ fontSize: 16, color: "red", fontWeight: "600" }}>Delete</Text>
               </TouchableOpacity>
             </View>
