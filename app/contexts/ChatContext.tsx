@@ -24,6 +24,11 @@ import {
   Timestamp,
   getDocs
 } from 'firebase/firestore';
+import { 
+  ref, 
+  uploadBytes, 
+  getDownloadURL 
+} from 'firebase/storage';
 import { auth, db } from '../../firebaseConfig';
 
 export interface Message {

@@ -92,7 +92,11 @@ export default function ChatScreen() {
   } = useChatContext();
 
   const [messageText, setMessageText] = useState('');
+  
+  // Stores the local URI for previewing on this device
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  // Stores the Base64 string to send to other users
+  const [selectedImageBase64, setSelectedImageBase64] = useState<string | null>(null);
 
   const [isImageViewerVisible, setImageViewerVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -123,11 +127,20 @@ export default function ChatScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 1,
+        quality: 0.5, // Reduced quality is important to keep Base64 string size under Firestore limits (1MB)
+        base64: true, // Request Base64 data
       });
 
-      if (!result.canceled) {
+      if (!result.canceled && result.assets[0].uri) {
+        // Set local URI for preview
         setSelectedImage(result.assets[0].uri);
+        
+        // Prepare Base64 string for sending
+        if (result.assets[0].base64) {
+          // Construct data URI (assuming jpeg or png, usually safe to default to jpeg/png for display)
+          const base64Data = `data:image/jpeg;base64,${result.assets[0].base64}`;
+          setSelectedImageBase64(base64Data);
+        }
       }
     } catch (error) {
       console.log('Error picking image:', error);
@@ -159,23 +172,28 @@ export default function ChatScreen() {
 
   const removeSelectedImage = () => {
     setSelectedImage(null);
+    setSelectedImageBase64(null); // Clear the base64 data too
   };
 
   const handleSend = async () => {
-    if (!messageText.trim() && !selectedImage) return;
+    // Check if we have text OR a base64 image ready
+    if (!messageText.trim() && !selectedImageBase64) return;
 
     try {
       if (editingMessage) {
         await updateMessage(editingMessage.id, messageText.trim());
         setEditingMessage(null);
       } else {
-        await addMessage(messageText.trim(), selectedImage);
+        // Pass the Base64 string instead of the local URI
+        // If there is no image, selectedImageBase64 is null
+        await addMessage(messageText.trim(), selectedImageBase64);
       }
       setMessageText('');
       setSelectedImage(null);
+      setSelectedImageBase64(null);
     } catch (error) {
       console.error("Send error:", error);
-      Alert.alert("Error", "Could not send message.");
+      Alert.alert("Error", "Could not send message. File might be too large.");
     }
   };
 
